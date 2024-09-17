@@ -1,5 +1,7 @@
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import pygame
 
@@ -12,17 +14,39 @@ class TrackEditor:
     A class to represent the track editor.
     """
 
-    curve: Optional[bc.BezierCurve]
-    selected_point: Tuple[Optional[int], int]
-    is_creating: bool
+    @dataclass
+    class PointState:
+        """
+        Editing a point.
+        """
+        index: int
+        is_new: bool = False
+
+    @dataclass
+    class ControlState:
+        """
+        Editing a control point.
+        """
+        index: int
+        is_new: bool = False
+
+    @dataclass
+    class OppositeControlState:
+        """
+        Editing an opposite control point.
+        """
+        index: int
+
+
+    curve: bc.BezierCurve
+    edit: Optional[Union[PointState, ControlState, OppositeControlState]]
     debug_point_size: int
 
     DEFAULT_DIRECTORY = Path("data/tracks")
 
     def __init__(self, debug_point_size: int = 6):
-        self.curve = None
-        self.selected_point = (None, 0)
-        self.is_creating = False
+        self.curve = bc.BezierCurve()
+        self.edit = None
         self.debug_point_size = debug_point_size
 
     @staticmethod
@@ -58,7 +82,7 @@ class TrackEditor:
             track_file.parent.mkdir(parents=True, exist_ok=True)
             track_file.touch()
 
-        track_file.write_text(self.curve.serialize() if self.curve is not None else "")
+        track_file.write_text(self.curve.serialize())
 
     def on_mouse_up(self, button: int):
         """
@@ -71,16 +95,11 @@ class TrackEditor:
 
         x, y = pygame.mouse.get_pos()
 
-        if self.curve is None:
-            self.is_creating = True
-            self.curve = bc.BezierCurve([bc.BezierCurvePoint(x, y, x, y)])
+        if isinstance(self.edit, TrackEditor.ControlState) and self.edit.is_new:
             self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
-            self.selected_point = (1, 0)
-        elif self.is_creating:
-            self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
-            self.selected_point = (len(self.curve.pts) - 1, 0)
+            self.edit = TrackEditor.PointState(len(self.curve.pts) - 1, is_new=True)
         else:
-            self.selected_point = (None, 0)
+            self.edit = None
 
     def on_mouse_down(self, button: int):
         """
@@ -88,67 +107,62 @@ class TrackEditor:
         :param button: The button that was pressed
         :return: None
         """
-        if button != 1 or self.curve is None:
+        if button != 1:
             return
 
         x, y = pygame.mouse.get_pos()
 
-        if self.is_creating:
-            self.selected_point = (self.selected_point[0], 1)
-        elif self.selected_point == (None, 0):
-            for i in range(len(self.curve.pts)):
-                dist = (self.curve.pts[i].x - x) ** 2 + (self.curve.pts[i].y - y) ** 2
-                control_dist = (self.curve.pts[i].control_x - x) ** 2 + (
-                    self.curve.pts[i].control_y - y
+        if self.edit is None:
+            for i, pt in enumerate(self.curve.pts):
+                dist = (pt.x - x) ** 2 + (pt.y - y) ** 2
+                control_dist = (pt.control_x - x) ** 2 + (
+                    pt.control_y - y
                 ) ** 2
                 opposite_control_dist = (
-                    self.curve.pts[i].opposite_control_point()[0] - x
-                ) ** 2 + (self.curve.pts[i].opposite_control_point()[1] - y) ** 2
+                    pt.opposite_control_point()[0] - x
+                ) ** 2 + (pt.opposite_control_point()[1] - y) ** 2
 
                 if control_dist < self.debug_point_size**2:
-                    self.selected_point = (i, 1)
+                    self.edit = TrackEditor.ControlState(i)
                     break
                 elif opposite_control_dist < self.debug_point_size**2:
-                    self.selected_point = (i, 2)
+                    self.edit = TrackEditor.OppositeControlState(i)
                     break
                 elif dist < self.debug_point_size**2:
-                    self.selected_point = (i, 0)
+                    self.edit = TrackEditor.PointState(i)
                     break
             else:
-                self.is_creating = True
                 self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
-                self.selected_point = (len(self.curve.pts) - 1, 1)
+                self.edit = TrackEditor.ControlState(len(self.curve.pts) - 1, is_new=True)
+        elif isinstance(self.edit, TrackEditor.PointState):
+            self.edit = TrackEditor.ControlState(self.edit.index, is_new=self.edit.is_new)
 
     def on_mouse_moved(self, screen: pygame.Surface):
         """
         Handle the mouse moved event.
         :return: None
         """
-        if self.curve is None:
-            return
-
         x, y = pygame.mouse.get_pos()
 
-        if self.selected_point != (None, 0):
-            if self.selected_point[1] == 0:
-                bounded_x = max(0, min(x, screen.get_width()))
-                bounded_y = max(0, min(y, screen.get_height()))
-                self.curve.pts[self.selected_point[0]] = self.curve.pts[
-                    self.selected_point[0]
-                ].translated(
-                    bounded_x - self.curve.pts[self.selected_point[0]].x,
-                    bounded_y - self.curve.pts[self.selected_point[0]].y,
-                )
-            elif self.selected_point[1] == 1:
-                self.curve.pts[self.selected_point[0]].control_x = x
-                self.curve.pts[self.selected_point[0]].control_y = y
-            elif self.selected_point[1] == 2:
-                self.curve.pts[self.selected_point[0]].control_x = self.curve.pts[
-                    self.selected_point[0]
-                ].x - (x - self.curve.pts[self.selected_point[0]].x)
-                self.curve.pts[self.selected_point[0]].control_y = self.curve.pts[
-                    self.selected_point[0]
-                ].y - (y - self.curve.pts[self.selected_point[0]].y)
+        if isinstance(self.edit, TrackEditor.PointState):
+            bounded_x = max(0, min(x, screen.get_width()))
+            bounded_y = max(0, min(y, screen.get_height()))
+            self.curve.pts[self.edit.index].translate(
+                bounded_x - self.curve.pts[self.edit.index].x,
+                bounded_y - self.curve.pts[self.edit.index].y,
+            )
+        elif isinstance(self.edit, TrackEditor.ControlState):
+            self.curve.pts[self.edit.index].control_x = x
+            self.curve.pts[self.edit.index].control_y = y
+        elif isinstance(self.edit, TrackEditor.OppositeControlState):
+            self.curve.pts[self.edit.index].control_x = (
+                self.curve.pts[self.edit.index].x
+                - (x - self.curve.pts[self.edit.index].x)
+            )
+            self.curve.pts[self.edit.index].control_y = (
+                self.curve.pts[self.edit.index].y
+                - (y - self.curve.pts[self.edit.index].y)
+            )
 
     def on_key_pressed(self, key: int):
         """
@@ -156,19 +170,14 @@ class TrackEditor:
         :param key: The key that was pressed
         :return: None
         """
-        if self.curve is None:
-            return
-
         if (
-            key in (pygame.K_DELETE, pygame.K_BACKSPACE, pygame.K_ESCAPE) or
-            key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL
+            self.curve.pts and (
+                key in (pygame.K_DELETE, pygame.K_BACKSPACE, pygame.K_ESCAPE) or
+                key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL
+            )
         ):
-            self.selected_point = (None, 0)
-            self.is_creating = False
+            self.edit = None
             self.curve.pts.pop(len(self.curve.pts) - 1)
-
-        if not self.curve.pts:
-            self.curve = None
 
     def draw_editing(
         self,
@@ -187,6 +196,5 @@ class TrackEditor:
         :param edit_width: The width of the edit
         :return: None
         """
-        if self.curve is not None:
-            self.curve.draw(screen, line_color, line_width)
-            self.curve.draw_debug(screen, edit_color, edit_width)
+        self.curve.draw(screen, line_color, line_width)
+        self.curve.draw_edit(screen, edit_color, edit_width)
