@@ -1,7 +1,6 @@
 from dataclasses import dataclass
-from enum import Enum
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Optional, Union
 
 import pygame
 
@@ -19,6 +18,7 @@ class TrackEditor:
         """
         Editing a point.
         """
+
         index: int
         is_new: bool = False
 
@@ -27,6 +27,7 @@ class TrackEditor:
         """
         Editing a control point.
         """
+
         index: int
         is_new: bool = False
 
@@ -35,8 +36,8 @@ class TrackEditor:
         """
         Editing an opposite control point.
         """
-        index: int
 
+        index: int
 
     curve: bc.BezierCurve
     edit: Optional[Union[PointState, ControlState, OppositeControlState]]
@@ -115,12 +116,10 @@ class TrackEditor:
         if self.edit is None:
             for i, pt in enumerate(self.curve.pts):
                 dist = (pt.x - x) ** 2 + (pt.y - y) ** 2
-                control_dist = (pt.control_x - x) ** 2 + (
-                    pt.control_y - y
+                control_dist = (pt.control_x - x) ** 2 + (pt.control_y - y) ** 2
+                opposite_control_dist = (pt.opposite_control_point()[0] - x) ** 2 + (
+                    pt.opposite_control_point()[1] - y
                 ) ** 2
-                opposite_control_dist = (
-                    pt.opposite_control_point()[0] - x
-                ) ** 2 + (pt.opposite_control_point()[1] - y) ** 2
 
                 if control_dist < self.debug_point_size**2:
                     self.edit = TrackEditor.ControlState(i)
@@ -133,9 +132,13 @@ class TrackEditor:
                     break
             else:
                 self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
-                self.edit = TrackEditor.ControlState(len(self.curve.pts) - 1, is_new=True)
+                self.edit = TrackEditor.ControlState(
+                    len(self.curve.pts) - 1, is_new=True
+                )
         elif isinstance(self.edit, TrackEditor.PointState):
-            self.edit = TrackEditor.ControlState(self.edit.index, is_new=self.edit.is_new)
+            self.edit = TrackEditor.ControlState(
+                self.edit.index, is_new=self.edit.is_new
+            )
 
     def on_mouse_moved(self, screen: pygame.Surface):
         """
@@ -155,14 +158,12 @@ class TrackEditor:
             self.curve.pts[self.edit.index].control_x = x
             self.curve.pts[self.edit.index].control_y = y
         elif isinstance(self.edit, TrackEditor.OppositeControlState):
-            self.curve.pts[self.edit.index].control_x = (
-                self.curve.pts[self.edit.index].x
-                - (x - self.curve.pts[self.edit.index].x)
-            )
-            self.curve.pts[self.edit.index].control_y = (
-                self.curve.pts[self.edit.index].y
-                - (y - self.curve.pts[self.edit.index].y)
-            )
+            self.curve.pts[self.edit.index].control_x = self.curve.pts[
+                self.edit.index
+            ].x - (x - self.curve.pts[self.edit.index].x)
+            self.curve.pts[self.edit.index].control_y = self.curve.pts[
+                self.edit.index
+            ].y - (y - self.curve.pts[self.edit.index].y)
 
     def on_key_pressed(self, key: int):
         """
@@ -170,11 +171,10 @@ class TrackEditor:
         :param key: The key that was pressed
         :return: None
         """
-        if (
-            self.curve.pts and (
-                key in (pygame.K_DELETE, pygame.K_BACKSPACE, pygame.K_ESCAPE) or
-                key == pygame.K_z and pygame.key.get_mods() & pygame.KMOD_CTRL
-            )
+        if self.curve.pts and (
+            key in (pygame.K_DELETE, pygame.K_BACKSPACE, pygame.K_ESCAPE)
+            or key == pygame.K_z
+            and pygame.key.get_mods() & pygame.KMOD_CTRL
         ):
             self.edit = None
             self.curve.pts.pop(len(self.curve.pts) - 1)

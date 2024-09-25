@@ -5,7 +5,6 @@ import pygame
 
 from track.editor import TrackEditor
 
-
 DESCRIPTION = (
     "Track editor mode.\n"
     "\n"
@@ -35,6 +34,7 @@ def main_scene(args: argparse.Namespace):
     # Setup
     editor = TrackEditor.load(args.name)
 
+    # Main loop
     running = True
     while running:
         # Handle events
@@ -74,21 +74,24 @@ def configure_parser(parser: argparse.ArgumentParser):
     :return: None
     """
     parser.add_argument(
-        "--name", "-n",
+        "--name",
+        "-n",
         dest="name",
         type=str,
         help="The name of the track to edit",
         required=True,
     )
     parser.add_argument(
-        "--resolution", "-r",
+        "--resolution",
+        "-r",
         dest="resolution",
         type=Tuple[int, int],
         help="The resolution of the track",
         default=(800, 640),
     )
     parser.add_argument(
-        "--fullscreen", "-f",
+        "--fullscreen",
+        "-f",
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",

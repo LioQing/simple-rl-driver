@@ -1,4 +1,4 @@
-from typing import Sequence, Tuple, List, Optional, Iterable
+from typing import Tuple, List, Iterable
 
 import numpy as np
 import pygame
@@ -93,7 +93,6 @@ class BezierCurve:
     pts: List[BezierCurvePoint]
     debug_point_size: int
 
-
     def __init__(self, pts: Iterable[BezierCurvePoint] = (), debug_point_size: int = 6):
         self.pts = list(pts)
         self.debug_point_size = debug_point_size
@@ -109,14 +108,14 @@ class BezierCurve:
                 int(
                     (1 - i) ** 3 * p1.x
                     + 3 * (1 - i) ** 2 * i * p1.control_x
-                    + 3 * (1 - i) * i ** 2 * p2.opposite_control_point()[0]
-                    + i ** 3 * p2.x
+                    + 3 * (1 - i) * i**2 * p2.opposite_control_point()[0]
+                    + i**3 * p2.x
                 ),
                 int(
                     (1 - i) ** 3 * p1.y
                     + 3 * (1 - i) ** 2 * i * p1.control_y
-                    + 3 * (1 - i) * i ** 2 * p2.opposite_control_point()[1]
-                    + i ** 3 * p2.y
+                    + 3 * (1 - i) * i**2 * p2.opposite_control_point()[1]
+                    + i**3 * p2.y
                 ),
             )
             for p1, p2 in zip(self.pts, self.pts[1:])
@@ -172,10 +171,7 @@ class BezierCurve:
         Serialize the Bézier curve.
         :return: The serialized Bézier curve string
         """
-        return "\n".join(
-            f"{p.x} {p.y} {p.control_x} {p.control_y}"
-            for p in self.pts
-        )
+        return "\n".join(f"{p.x} {p.y} {p.control_x} {p.control_y}" for p in self.pts)
 
     @staticmethod
     def deserialize(data: str) -> "BezierCurve":

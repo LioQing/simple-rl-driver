@@ -1,13 +1,21 @@
 import argparse
 from typing import Tuple
+from pathlib import Path
 
 import pygame
+
+from engine.entity.camera import Camera
+from engine.entity.car import PlayerCar, AICar
+from engine.entity.track import Track
 
 DESCRIPTION = (
     "Game play mode.\n"
     "\n"
-    "controls: to be determined\n"
+    "controls:\n"
+    "  ctrl + q                        quit the program\n"
 )
+
+WEIGHTS_PATH = Path("data/weights")
 
 
 def main_scene(args: argparse.Namespace):
@@ -23,6 +31,64 @@ def main_scene(args: argparse.Namespace):
         (pygame.FULLSCREEN if args.fullscreen else 0) | pygame.RESIZABLE,
     )
 
+    # Setup
+    track = Track.load(args.track)
+
+    player_car = PlayerCar()
+    player_car.set_track_data(track)
+
+    ai_cars = []
+    if args.weights:
+        ai_cars = [AICar() for _ in range(args.ai_count)]
+
+        # Weight
+        weights_file = WEIGHTS_PATH / f"{args.weights}.txt"
+        if not weights_file.exists():
+            raise FileNotFoundError(f"Weights file {weights_file} does not exist")
+
+        weights = weights_file.read_text().splitlines()
+        for i, car in enumerate(ai_cars):
+            car.set_track_data(track)
+            car.nn.from_string(weights[i % len(weights)])
+            if i > len(weights):
+                car.nn.mutate(0.01)
+
+    camera = Camera(screen, player_car)
+
+    # Main loop
+    running = True
+    fixed_dt = 0.032
+    while running:
+        # Handle events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if pygame.key.get_mods() & pygame.KMOD_CTRL:
+                    if event.key == pygame.K_q:
+                        running = False
+
+        # Update
+        player_car.update(fixed_dt, track)
+        for car in ai_cars:
+            if not car.out_of_track:
+                car.update(fixed_dt, track)
+        camera.update(fixed_dt)
+
+        # draws
+        screen.fill((255, 255, 255))
+
+        track.draw(screen, pygame.Color(0, 0, 0), camera, 5)
+        player_car.draw(screen, pygame.Color(0, 0, 0), camera)
+        for car in ai_cars:
+            car.draw(screen, pygame.Color(0, 0, 0), camera)
+
+        pygame.display.update()
+
+        clock.tick(60)
+
+    pygame.quit()
+
 
 def configure_parser(parser: argparse.ArgumentParser):
     """
@@ -31,24 +97,42 @@ def configure_parser(parser: argparse.ArgumentParser):
     :return: None
     """
     parser.add_argument(
-        "--track", "-t",
+        "--track",
+        "-t",
         dest="track",
         type=str,
         help="The name of the track to play in",
         required=True,
     )
     parser.add_argument(
-        "--resolution", "-r",
+        "--resolution",
+        "-r",
         dest="resolution",
         type=Tuple[int, int],
         help="The resolution of the track",
         default=(800, 640),
     )
     parser.add_argument(
-        "--fullscreen", "-f",
+        "--fullscreen",
+        "-f",
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",
+    )
+    parser.add_argument(
+        "--weights",
+        "-w",
+        dest="weights",
+        type=str,
+        help="The weights file to use for the AI",
+    )
+    parser.add_argument(
+        "--ai-count",
+        "-a",
+        dest="ai_count",
+        type=int,
+        help="The number of AI cars to use",
+        default=10,
     )
 
 

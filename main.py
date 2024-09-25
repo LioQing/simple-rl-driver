@@ -45,7 +45,7 @@ def main():
     args = parser.parse_args()
 
     if args.mode == "game":
-        raise NotImplementedError("Game mode is not implemented")
+        game.main.main_scene(args)
     elif args.mode == "track":
         track.main.main_scene(args)
 
