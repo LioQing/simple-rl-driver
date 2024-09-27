@@ -75,13 +75,15 @@ class Car(Transformable):
         self.speed = 0.0
         self.acceleration = 0.0
         self.out_of_track = False
-        self.rot = (
-            math.atan2(
+
+        direction = track.curve.pts[0].relative_control_point()
+        if direction == (0, 0):
+            direction = (
                 track.curve.pts[1].x - track.curve.pts[0].x,
                 track.curve.pts[1].y - track.curve.pts[0].y,
             )
-            - math.pi
-        )
+
+        self.rot = math.atan2(*direction) - math.pi
         self.progress = 0
         self.total_progress = len(track.polyline)
 
@@ -322,8 +324,8 @@ class AICar(Car):
 
         self.turn = lerp(self.turn, turn_input, 0.2)
 
-        self.forward = max(-1, min(1, self.forward))
-        self.turn = max(-1, min(1, self.turn))
+        self.forward = max(-1.0, min(1.0, self.forward))
+        self.turn = max(-1.0, min(1.0, self.turn))
 
         return Car.Input(self.forward, self.turn)
 
@@ -374,17 +376,24 @@ class PlayerCar(Car):
 
         self.turn = lerp(self.turn, turn_input, 0.2)
 
-        self.forward = max(-1, min(1, self.forward))
-        self.turn = max(-1, min(1, self.turn))
+        self.forward = max(-1.0, min(1.0, self.forward))
+        self.turn = max(-1.0, min(1.0, self.turn))
 
         return Car.Input(self.forward, self.turn)
 
 
-def selection_and_reproduce(select_count: int, population: List[AICar]):
+def selection_and_reproduce(
+    select_count: int,
+    population: List[AICar],
+    noise: float,
+    learning_rate: float,
+):
     """
     Select the best AI cars and reproduce them.
     :param select_count: The number of AI cars to select
     :param population: The population of AI cars
+    :param noise: The noise
+    :param learning_rate: The learning rate
     :return: None
     """
     if select_count == 0:
@@ -394,8 +403,10 @@ def selection_and_reproduce(select_count: int, population: List[AICar]):
     for i in range(select_count, len(population)):
         population[i].nn = deepcopy(population[i % select_count].nn)
 
-        # change if needed
-        population[i].nn.mutate(0.1, 0.1, population[i].get_fitness())
+        # Change if needed
+        population[i].nn.mutate(
+            noise, learning_rate, population[i].get_fitness()
+        )
 
 
 def follow_best_ai_car(population: List[AICar], camera: Camera):

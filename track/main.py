@@ -50,11 +50,16 @@ def main_scene(args: argparse.Namespace):
             elif event.type == pygame.KEYDOWN:
                 editor.on_key_pressed(event.key)
 
-                if pygame.key.get_mods() & pygame.KMOD_CTRL:
-                    if event.key == pygame.K_s:
-                        editor.save(args.name)
-                    elif event.key == pygame.K_q:
-                        running = False
+                if (
+                    pygame.key.get_mods() & pygame.KMOD_CTRL
+                    and event.key == pygame.K_s
+                ):
+                    editor.save(args.name)
+                if (
+                    pygame.key.get_mods() & pygame.KMOD_CTRL
+                    and event.key == pygame.K_q
+                ):
+                    running = False
 
         # Render
         screen.fill((255, 255, 255))

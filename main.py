@@ -2,6 +2,7 @@ import argparse
 
 import game.main
 import track.main
+import train.main
 
 DESCRIPTION = "Main entry point for the program"
 
@@ -34,6 +35,15 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     track.main.configure_parser(track_parser)
 
+    # Add train parser
+    train_parser = subparsers.add_parser(
+        "train",
+        help="Run in training mode",
+        description=train.main.DESCRIPTION,
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    train.main.configure_parser(train_parser)
+
 
 def main():
     """
@@ -48,6 +58,8 @@ def main():
         game.main.main_scene(args)
     elif args.mode == "track":
         track.main.main_scene(args)
+    elif args.mode == "train":
+        train.main.main_scene(args)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,4 @@
-from typing import Tuple, List, Iterable
+from typing import Iterable, List, Tuple
 
 import numpy as np
 import pygame
@@ -19,6 +19,13 @@ class BezierCurvePoint:
         self.y = y
         self.control_x = control_x
         self.control_y = control_y
+
+    def position(self) -> Tuple[int, int]:
+        """
+        Get the position of the point.
+        :return: The position of the point
+        """
+        return self.x, self.y
 
     def relative_control_point(self) -> Tuple[int, int]:
         """
@@ -93,7 +100,9 @@ class BezierCurve:
     pts: List[BezierCurvePoint]
     debug_point_size: int
 
-    def __init__(self, pts: Iterable[BezierCurvePoint] = (), debug_point_size: int = 6):
+    def __init__(
+        self, pts: Iterable[BezierCurvePoint] = (), debug_point_size: int = 6
+    ):
         self.pts = list(pts)
         self.debug_point_size = debug_point_size
 
@@ -122,7 +131,9 @@ class BezierCurve:
             for i in np.arange(0, 1, steps)
         )
 
-    def draw_edit(self, surface: pygame.Surface, color: pygame.Color, width: int = 1):
+    def draw_edit(
+        self, surface: pygame.Surface, color: pygame.Color, width: int = 1
+    ):
         """
         Draw the Bézier curve in edit mode.
         :param surface: The surface to draw on
@@ -131,12 +142,22 @@ class BezierCurve:
         :return: None
         """
         for p in self.pts:
-            pygame.draw.circle(surface, color, (p.x, p.y), self.debug_point_size, 0)
             pygame.draw.circle(
-                surface, color, (p.control_x, p.control_y), self.debug_point_size, 0
+                surface, color, (p.x, p.y), self.debug_point_size, 0
             )
             pygame.draw.circle(
-                surface, color, p.opposite_control_point(), self.debug_point_size, 1
+                surface,
+                color,
+                (p.control_x, p.control_y),
+                self.debug_point_size,
+                0,
+            )
+            pygame.draw.circle(
+                surface,
+                color,
+                p.opposite_control_point(),
+                self.debug_point_size,
+                1,
             )
             pygame.draw.line(
                 surface,
@@ -171,7 +192,9 @@ class BezierCurve:
         Serialize the Bézier curve.
         :return: The serialized Bézier curve string
         """
-        return "\n".join(f"{p.x} {p.y} {p.control_x} {p.control_y}" for p in self.pts)
+        return "\n".join(
+            f"{p.x} {p.y} {p.control_x} {p.control_y}" for p in self.pts
+        )
 
     @staticmethod
     def deserialize(data: str) -> "BezierCurve":
