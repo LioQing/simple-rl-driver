@@ -58,7 +58,7 @@ def main_scene(args: argparse.Namespace):
 
         # Render
         screen.fill((255, 255, 255))
-        editor.draw_editing(screen, pygame.Color(0, 0, 0), 3)
+        editor.draw(screen, pygame.Color(0, 0, 0), 3)
 
         pygame.display.update()
 

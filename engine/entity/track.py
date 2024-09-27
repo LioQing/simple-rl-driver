@@ -1,13 +1,18 @@
 from pathlib import Path
 from typing import List, Tuple
 
+import pyclipper
+import pygame
+
 import engine.bezier_curve as bc
 from engine.entity.camera import Camera
-import pygame
-import pyclipper
 
 
 class Track:
+    """
+    A class representing the track in game.
+    """
+
     curve: bc.BezierCurve
     width: int
     polyline_factor: float
@@ -43,6 +48,15 @@ class Track:
         scale: int = DEFAULT_SCALE,
         polyline_factor: float = DEFAULT_POLYLINE_FACTOR,
     ) -> "Track":
+        """
+        Load the track from file system.
+        :param name: The name of the track to load
+        :param directory: The directory to load the track from
+        :param width: The width of the track
+        :param scale: The scale of the track
+        :param polyline_factor: The polyline factor
+        :return: The track
+        """
         track_file = directory / f"{name}.txt"
 
         if not track_file.exists():
@@ -63,6 +77,17 @@ class Track:
         camera: Camera,
         width: int = 1,
     ):
+        """
+        Draw the track on the screen.
+        :param screen: The screen to draw on
+        :param color: The color of the track
+        :param camera: The camera to use
+        :param width: The width of the track edges
+        :return: None
+        """
         pygame.draw.polygon(
-            screen, color, [camera.get_coord(x, y) for x, y in self.polygon], width
+            screen,
+            color,
+            [camera.get_coord(x, y) for x, y in self.polygon],
+            width,
         )

@@ -1,11 +1,11 @@
 import argparse
-from typing import Tuple
 from pathlib import Path
+from typing import Tuple
 
 import pygame
 
 from engine.entity.camera import Camera
-from engine.entity.car import PlayerCar, AICar
+from engine.entity.car import AICar, PlayerCar
 from engine.entity.track import Track
 
 DESCRIPTION = (
@@ -35,7 +35,7 @@ def main_scene(args: argparse.Namespace):
     track = Track.load(args.track)
 
     player_car = PlayerCar()
-    player_car.set_track_data(track)
+    player_car.set_start_pos(track)
 
     ai_cars = []
     if args.weights:
@@ -44,11 +44,13 @@ def main_scene(args: argparse.Namespace):
         # Weight
         weights_file = WEIGHTS_PATH / f"{args.weights}.txt"
         if not weights_file.exists():
-            raise FileNotFoundError(f"Weights file {weights_file} does not exist")
+            raise FileNotFoundError(
+                f"Weights file {weights_file} does not exist"
+            )
 
         weights = weights_file.read_text().splitlines()
         for i, car in enumerate(ai_cars):
-            car.set_track_data(track)
+            car.set_start_pos(track)
             car.nn.from_string(weights[i % len(weights)])
             if i > len(weights):
                 car.nn.mutate(0.01)

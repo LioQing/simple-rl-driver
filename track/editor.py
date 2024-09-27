@@ -41,14 +41,15 @@ class TrackEditor:
 
     curve: bc.BezierCurve
     edit: Optional[Union[PointState, ControlState, OppositeControlState]]
-    debug_point_size: int
+    point_size: int
 
+    DEFAULT_POINT_SIZE = 6
     DEFAULT_DIRECTORY = Path("data/tracks")
 
-    def __init__(self, debug_point_size: int = 6):
+    def __init__(self, point_size: int = DEFAULT_POINT_SIZE):
         self.curve = bc.BezierCurve()
         self.edit = None
-        self.debug_point_size = debug_point_size
+        self.point_size = point_size
 
     @staticmethod
     def load(name: str, directory: Path = DEFAULT_DIRECTORY) -> "TrackEditor":
@@ -96,9 +97,14 @@ class TrackEditor:
 
         x, y = pygame.mouse.get_pos()
 
-        if isinstance(self.edit, TrackEditor.ControlState) and self.edit.is_new:
+        if (
+            isinstance(self.edit, TrackEditor.ControlState)
+            and self.edit.is_new
+        ):
             self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
-            self.edit = TrackEditor.PointState(len(self.curve.pts) - 1, is_new=True)
+            self.edit = TrackEditor.PointState(
+                len(self.curve.pts) - 1, is_new=True
+            )
         else:
             self.edit = None
 
@@ -116,18 +122,20 @@ class TrackEditor:
         if self.edit is None:
             for i, pt in enumerate(self.curve.pts):
                 dist = (pt.x - x) ** 2 + (pt.y - y) ** 2
-                control_dist = (pt.control_x - x) ** 2 + (pt.control_y - y) ** 2
-                opposite_control_dist = (pt.opposite_control_point()[0] - x) ** 2 + (
-                    pt.opposite_control_point()[1] - y
+                control_dist = (pt.control_x - x) ** 2 + (
+                    pt.control_y - y
                 ) ** 2
+                opposite_control_dist = (
+                    pt.opposite_control_point()[0] - x
+                ) ** 2 + (pt.opposite_control_point()[1] - y) ** 2
 
-                if control_dist < self.debug_point_size**2:
+                if control_dist < self.point_size**2:
                     self.edit = TrackEditor.ControlState(i)
                     break
-                elif opposite_control_dist < self.debug_point_size**2:
+                elif opposite_control_dist < self.point_size**2:
                     self.edit = TrackEditor.OppositeControlState(i)
                     break
-                elif dist < self.debug_point_size**2:
+                elif dist < self.point_size**2:
                     self.edit = TrackEditor.PointState(i)
                     break
             else:
@@ -143,6 +151,7 @@ class TrackEditor:
     def on_mouse_moved(self, screen: pygame.Surface):
         """
         Handle the mouse moved event.
+        :param screen: The screen
         :return: None
         """
         x, y = pygame.mouse.get_pos()
@@ -179,7 +188,7 @@ class TrackEditor:
             self.edit = None
             self.curve.pts.pop(len(self.curve.pts) - 1)
 
-    def draw_editing(
+    def draw(
         self,
         screen: pygame.Surface,
         line_color: pygame.Color = pygame.Color(0, 0, 0),
@@ -188,7 +197,7 @@ class TrackEditor:
         edit_width: int = 1,
     ):
         """
-        Draw the editing.
+        Draw the editor.
         :param screen: The screen to draw on
         :param line_color: The color of the line
         :param line_width: The width of the line
