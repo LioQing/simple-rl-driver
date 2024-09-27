@@ -7,7 +7,7 @@ import pygame
 from shapely.geometry import Point
 from shapely.geometry.polygon import LinearRing, LineString, Polygon
 
-from engine.car_nn import CarNeuralNetwork, InputVector
+from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.track import Track
 from engine.entity.transformable import Transformable
@@ -195,7 +195,7 @@ class AICar(Car):
     forward: float
     turn: float
     sensors: List[float]
-    nn: CarNeuralNetwork
+    nn: CarNN
     out_of_track: bool
     outputs: List[float]
 
@@ -210,7 +210,7 @@ class AICar(Car):
         # sensor at 0, 45, 90, 135, 180 degrees
         self.sensors = [self.SENSOR_DIST] * self.SENSOR_COUNT
 
-        self.nn = CarNeuralNetwork(None)
+        self.nn = CarNN(None)
         self.out_of_track = False
         self.outputs = [0.0, 0.0]
 
@@ -272,7 +272,7 @@ class AICar(Car):
         """
         super().draw(screen, color, camera)
 
-        # draw sensors lines
+        # Draw sensors lines
         for i in range(len(self.sensors)):
             if self.sensors[i] == float("inf"):
                 continue
@@ -295,7 +295,7 @@ class AICar(Car):
 
     def _get_input(self) -> Car.Input:
         self.outputs = self.nn.activate(
-            InputVector(
+            CarNN.InputVector(
                 self.rot / (2 * math.pi),
                 self.speed / self.max_speed,
                 [s / self.SENSOR_DIST for s in self.sensors],
@@ -339,6 +339,10 @@ class PlayerCar(Car):
     """
     A class representing the player car.
     """
+
+    enabled: bool
+    forward: float
+    turn: float
 
     def __init__(self, enabled: bool = True):
         super().__init__(0, 0, 0, 400)
