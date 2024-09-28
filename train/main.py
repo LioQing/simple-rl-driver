@@ -1,15 +1,12 @@
 import argparse
+from copy import deepcopy
 from pathlib import Path
 from typing import Tuple
 
 import pygame
 
 from engine.entity.camera import Camera
-from engine.entity.car import (
-    AICar,
-    follow_best_ai_car,
-    selection_and_reproduce,
-)
+from engine.entity.car import AICar
 from engine.entity.track import Track
 
 DESCRIPTION = (
@@ -18,6 +15,7 @@ DESCRIPTION = (
     "controls:\n"
     "  ctrl + q                        quit the program\n"
     "  ctrl + s                        save the weights\n"
+    "     enter                        manually trigger next iteration\n"
 )
 
 WEIGHTS_PATH = Path("data/weights")
@@ -62,6 +60,16 @@ def main_scene(args: argparse.Namespace):
 
     camera = Camera(screen)
 
+    # Next iteration function for the AI
+    def next_iteration():
+        select_count = 2
+        ai_cars.sort(key=lambda x: x.get_fitness(), reverse=True)
+        for i in range(select_count, len(ai_cars)):
+            ai_cars[i].nn = deepcopy(ai_cars[i % select_count].nn)
+
+            # Change if needed
+            ai_cars[i].nn.mutate(0.2, 0.5, ai_cars[i].get_fitness())
+
     # Main loop
     running = True
     fixed_dt = 0.032
@@ -84,21 +92,22 @@ def main_scene(args: argparse.Namespace):
                         "\n".join(str(car.nn) for car in ai_cars)
                     )
                 if event.key == pygame.K_RETURN:
-                    selection_and_reproduce(2, ai_cars, 0.2, 0.5)
+                    next_iteration()
                     for car in ai_cars:
                         car.set_start_pos(track)
 
         # If all cars out of track then next iteration
         if all(car.out_of_track for car in ai_cars):
-            selection_and_reproduce(2, ai_cars, 0.2, 0.5)
+            next_iteration()
             for car in ai_cars:
                 car.set_start_pos(track)
 
         # Update
-        follow_best_ai_car(ai_cars, camera)
         for car in ai_cars:
             if not car.out_of_track:
                 car.update(fixed_dt, track)
+
+        camera.car = max(ai_cars, key=lambda x: x.get_fitness())
         camera.update(fixed_dt)
 
         # Draw

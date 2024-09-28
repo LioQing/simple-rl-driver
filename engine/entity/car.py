@@ -1,5 +1,4 @@
 import math
-from copy import deepcopy
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -380,43 +379,6 @@ class PlayerCar(Car):
         self.turn = max(-1.0, min(1.0, self.turn))
 
         return Car.Input(self.forward, self.turn)
-
-
-def selection_and_reproduce(
-    select_count: int,
-    population: List[AICar],
-    noise: float,
-    learning_rate: float,
-):
-    """
-    Select the best AI cars and reproduce them.
-    :param select_count: The number of AI cars to select
-    :param population: The population of AI cars
-    :param noise: The noise
-    :param learning_rate: The learning rate
-    :return: None
-    """
-    if select_count == 0:
-        return
-
-    population.sort(key=lambda x: x.get_fitness(), reverse=True)
-    for i in range(select_count, len(population)):
-        population[i].nn = deepcopy(population[i % select_count].nn)
-
-        # Change if needed
-        population[i].nn.mutate(
-            noise, learning_rate, population[i].get_fitness()
-        )
-
-
-def follow_best_ai_car(population: List[AICar], camera: Camera):
-    """
-    Make the camera follow the best AI car.
-    :param population: The population of AI cars
-    :param camera: The camera
-    :return: None
-    """
-    camera.car = max(population, key=lambda x: x.get_fitness())
 
 
 def lerp(a, b, t):

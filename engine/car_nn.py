@@ -1,5 +1,5 @@
 import json
-from typing import List, Union
+from typing import List, Optional
 
 import numpy as np
 
@@ -16,7 +16,7 @@ class CarNN:
 
         sensors: List[float]
 
-        def __init__(self, rot: float, speed: float, sensors: list[float]):
+        def __init__(self, rot: float, speed: float, sensors: List[float]):
             self.sensors = sensors
 
             if len(self.sensors) != 7:
@@ -29,13 +29,13 @@ class CarNN:
             """
             return [*self.sensors]
 
-    prev_fitness: Union[float, None]
-    prev_weights: Union[List[np.ndarray], None]
+    prev_fitness: Optional[float]
+    prev_weights: Optional[List[np.ndarray]]
     weights: List[np.ndarray]
 
     LAYER_SIZES = (7, 32, 32, 16, 2)
 
-    def __init__(self, prev_fitness: Union[float, None]):
+    def __init__(self, prev_fitness: Optional[float] = None):
         self.prev_fitness = prev_fitness
         self.prev_weights = None
 
@@ -71,7 +71,7 @@ class CarNN:
         self,
         noise: float,
         learn_rate: float = 0,
-        curr_fitness: Union[float, None] = None,
+        curr_fitness: Optional[float] = None,
     ):
         """
         Mutate the neural network.
