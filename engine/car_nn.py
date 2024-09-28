@@ -30,37 +30,21 @@ class CarNN:
             return [*self.sensors]
 
     prev_fitness: Union[float, None]
-    prev_weights: Union[np.ndarray, None]
-    prev_weights2: Union[np.ndarray, None]
-    prev_weights3: Union[np.ndarray, None]
-    prev_weights4: Union[np.ndarray, None]
-    weights: np.ndarray
-    weights2: np.ndarray
-    weights3: np.ndarray
-    weights4: np.ndarray
+    prev_weights: Union[List[np.ndarray], None]
+    weights: List[np.ndarray]
 
-    INPUTS_SIZE = 7
-    H1_SIZE = 32
-    H2_SIZE = 32
-    H3_SIZE = 16
-    OUTPUTS_SIZE = 2
+    LAYER_SIZES = (7, 32, 32, 16, 2)
 
     def __init__(self, prev_fitness: Union[float, None]):
         self.prev_fitness = prev_fitness
-
         self.prev_weights = None
-        self.prev_weights2 = None
-        self.prev_weights3 = None
-        self.prev_weights4 = None
 
-        self.weights = np.random.normal(
-            size=(self.INPUTS_SIZE + 1, self.H1_SIZE)
-        )
-        self.weights2 = np.random.normal(size=(self.H1_SIZE + 1, self.H2_SIZE))
-        self.weights3 = np.random.normal(size=(self.H2_SIZE + 1, self.H3_SIZE))
-        self.weights4 = np.random.normal(
-            size=(self.H3_SIZE + 1, self.OUTPUTS_SIZE)
-        )
+        self.weights = [
+            np.random.normal(size=(prev_size + 1, curr_size))
+            for prev_size, curr_size in zip(
+                self.LAYER_SIZES, self.LAYER_SIZES[1:]
+            )
+        ]
 
     def activate(self, inputs: InputVector) -> List[float]:
         """
@@ -75,21 +59,13 @@ class CarNN:
         def relu(x: np.ndarray) -> np.ndarray:
             return np.maximum(0, x)
 
-        inputs = np.array(inputs.into_vector() + [1.0])
+        layer = np.array(inputs.into_vector() + [1.0])
 
-        layer1 = np.dot(inputs.T, self.weights)
-        layer1 = np.concatenate((relu(layer1), [1.0]))
+        for weight in self.weights:
+            layer = np.dot(layer, weight)
+            layer = np.concatenate((relu(layer), [1.0]))
 
-        layer2 = np.dot(layer1.T, self.weights2)
-        layer2 = np.concatenate((relu(layer2), [1.0]))
-
-        layer3 = np.dot(layer2.T, self.weights3)
-        layer3 = np.concatenate((relu(layer3), [1.0]))
-
-        layer4 = np.dot(layer3.T, self.weights4)
-        layer4 = relu(layer4)
-
-        return list(layer4)
+        return list(layer)
 
     def mutate(
         self,
@@ -109,66 +85,34 @@ class CarNN:
             or curr_fitness is None
             or learn_rate == 0
         ):
-            # random
-            self.weights += np.random.normal(
-                loc=0, scale=noise, size=self.weights.shape
-            )
-            self.weights2 += np.random.normal(
-                loc=0, scale=noise, size=self.weights2.shape
-            )
-            self.weights3 += np.random.normal(
-                loc=0, scale=noise, size=self.weights3.shape
-            )
-            self.weights4 += np.random.normal(
-                loc=0, scale=noise, size=self.weights4.shape
-            )
+            # Random
+            for i in range(len(self.weights)):
+                self.weights[i] += np.random.normal(
+                    loc=0, scale=noise, size=self.weights[i].shape
+                )
             return
 
-        # gradient descent
+        # Gradient descent
         dfitness = curr_fitness - self.prev_fitness
-        dweights = self.weights - self.prev_weights
-        dweights2 = self.weights2 - self.prev_weights2
-        dweights3 = self.weights3 - self.prev_weights3
-        dweights4 = self.weights4 - self.prev_weights4
+        dweights = [
+            weight - prev_weight
+            for weight, prev_weight in zip(self.weights, self.prev_weights)
+        ]
 
         self.prev_fitness = curr_fitness
         self.prev_weights = self.weights
-        self.prev_weights2 = self.weights2
-        self.prev_weights3 = self.weights3
-        self.prev_weights4 = self.weights4
 
-        self.weights += (
-            learn_rate
-            * np.sign(dfitness)
-            * dweights
-            * np.random.normal(loc=1, scale=noise, size=dweights.shape)
-        )
-        self.weights2 += (
-            learn_rate
-            * np.sign(dweights)
-            * dweights2
-            * np.random.normal(loc=1, scale=noise, size=dweights2.shape)
-        )
-        self.weights3 += (
-            learn_rate
-            * np.sign(dweights2)
-            * dweights3
-            * np.random.normal(loc=1, scale=noise, size=dweights3.shape)
-        )
-        self.weights4 += (
-            learn_rate
-            * np.sign(dweights3)
-            * dweights4
-            * np.random.normal(loc=1, scale=noise, size=dweights4.shape)
-        )
+        for i in range(len(self.weights)):
+            sign = np.sign(dfitness if i == 0 else dweights[i - 1])
+            self.weights[i] += (
+                learn_rate
+                * sign
+                * dweights[i]
+                * np.random.normal(loc=1, scale=noise, size=dweights[i].shape)
+            )
 
     def __str__(self) -> str:
-        return (
-            f"{json.dumps(self.weights.tolist())}@"
-            f"{json.dumps(self.weights2.tolist())}@"
-            f"{json.dumps(self.weights3.tolist())}@"
-            f"{json.dumps(self.weights4.tolist())}"
-        )
+        return "@".join(json.dumps(weight.tolist()) for weight in self.weights)
 
     def from_string(self, string: str):
         """
@@ -176,16 +120,10 @@ class CarNN:
         :param string: The string
         :return: None
         """
-        weights, weights2, weights3, weights4 = string.split("@")
-        self.weights = np.array(json.loads(weights)).reshape(
-            (self.INPUTS_SIZE + 1, self.H1_SIZE)
-        )
-        self.weights2 = np.array(json.loads(weights2)).reshape(
-            (self.H1_SIZE + 1, self.H2_SIZE)
-        )
-        self.weights3 = np.array(json.loads(weights3)).reshape(
-            (self.H2_SIZE + 1, self.H3_SIZE)
-        )
-        self.weights4 = np.array(json.loads(weights4)).reshape(
-            (self.H3_SIZE + 1, self.OUTPUTS_SIZE)
-        )
+        weights = string.split("@")
+        self.weights = [
+            np.array(json.loads(weight)).reshape((prev_size + 1, curr_size))
+            for weight, prev_size, curr_size in zip(
+                weights, self.LAYER_SIZES, self.LAYER_SIZES[1:]
+            )
+        ]
