@@ -10,6 +10,7 @@ from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.track import Track
 from engine.entity.transformable import Transformable
+from engine.lerp import lerp
 
 
 class Car(Transformable):
@@ -107,12 +108,9 @@ class Car(Transformable):
             self.speed = max(-self.max_speed, min(self.max_speed, self.speed))
         else:
             self.speed -= self.speed * deceleration * dt
-            if (self.speed < 0.1) and (self.speed > -0.1):
-                self.speed = 0
 
-        self.out_of_track = not all(
-            Polygon(track.polygon).contains(Point(x, y))
-            for x, y in self.get_transform()
+        self.out_of_track = not Polygon(track.polygon).contains(
+            Point(self.x, self.y)
         )
 
         if (
@@ -120,23 +118,19 @@ class Car(Transformable):
             and self.out_of_track
         ):
             self.speed -= self.speed * out_of_track_deceleration * dt
-            if (self.speed < 0.1) and (self.speed > -0.1):
-                self.speed = 0
 
         self.translate_forward(-self.speed * dt)
         self.rotate(-input_data.turn * self.turn_speed * dt)
 
         # Progress
-        for i in range(self.progress, len(track.polyline)):
-            is_in_check_pt = (
-                Point(track.polyline[i]).distance(Point(self.x, self.y))
+        check_point_idx = self.progress + 1
+        if check_point_idx < len(track.polyline):
+            check_point = Point(track.polyline[check_point_idx])
+            if (
+                check_point.distance(Point(self.x, self.y))
                 < track.width + self.HEIGHT
-            )
-
-            if not is_in_check_pt:
-                break
-
-            self.progress = i + 1
+            ):
+                self.progress += 1
 
     def get_transform(self) -> List[Tuple[float, float]]:
         """
@@ -168,19 +162,6 @@ class Car(Transformable):
         :param camera: The camera
         :return: None
         """
-        if camera.car == self:
-            center = camera.screen.get_rect().center
-            rect = pygame.Rect(
-                center[0] - self.WIDTH / 2,
-                center[1] - self.HEIGHT / 2,
-                self.WIDTH,
-                self.HEIGHT,
-            )
-            pygame.draw.rect(screen, color, rect)
-            if self.out_of_track:
-                pygame.draw.rect(screen, pygame.Color(255, 0, 0), rect, 2)
-            return
-
         polygon = [camera.get_coord(x, y) for x, y in self.get_transform()]
 
         pygame.draw.polygon(screen, color, polygon)
@@ -272,6 +253,9 @@ class AICar(Car):
         :return: None
         """
         super().draw(screen, color, camera)
+
+        if self.out_of_track:
+            return
 
         # Draw sensors lines
         for i in range(len(self.sensors)):
@@ -379,14 +363,3 @@ class PlayerCar(Car):
         self.turn = max(-1.0, min(1.0, self.turn))
 
         return Car.Input(self.forward, self.turn)
-
-
-def lerp(a, b, t):
-    """
-    Linear interpolate from a to b by t
-    :param a: The start value
-    :param b: The end value
-    :param t: The interpolation value
-    :return: The interpolated value
-    """
-    return a + (b - a) * t

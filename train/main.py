@@ -108,7 +108,7 @@ def main_scene(args: argparse.Namespace):
                 car.update(fixed_dt, track)
 
         camera.car = max(ai_cars, key=lambda x: x.get_fitness())
-        camera.update(fixed_dt)
+        camera.update(fixed_dt, lerp_follow=True)
 
         # Draw
         screen.fill((255, 255, 255))

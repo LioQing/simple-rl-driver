@@ -33,7 +33,7 @@ class CarNN:
     prev_weights: Optional[List[np.ndarray]]
     weights: List[np.ndarray]
 
-    LAYER_SIZES = (7, 32, 32, 16, 2)
+    LAYER_SIZES = (7, 5, 5, 2)
 
     def __init__(self, prev_fitness: Optional[float] = None):
         self.prev_fitness = prev_fitness
@@ -62,8 +62,7 @@ class CarNN:
         layer = np.array(inputs.into_vector() + [1.0])
 
         for weight in self.weights:
-            layer = np.dot(layer, weight)
-            layer = np.concatenate((relu(layer), [1.0]))
+            layer = np.concatenate((relu(np.dot(layer, weight)), [1.0]))
 
         return list(layer)
 
