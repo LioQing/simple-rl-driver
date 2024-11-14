@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass
 from typing import List, Optional
 
 import numpy as np
@@ -9,6 +10,7 @@ class CarNN:
     A class representing the neural network of the car.
     """
 
+    @dataclass
     class InputVector:
         """
         A class representing the input vector of the neural network.
@@ -16,15 +18,10 @@ class CarNN:
 
         sensors: List[float]
 
-        def __init__(self, rot: float, speed: float, sensors: List[float]):
-            self.sensors = sensors
-
-            if len(self.sensors) != 7:
-                raise ValueError("Incorrect number of sensors")
-
         def into_vector(self) -> List[float]:
             """
             Convert the input vector into a list.
+
             :return: The list
             """
             return [*self.sensors]
@@ -32,11 +29,12 @@ class CarNN:
     prev_fitness: Optional[float]
     prev_weights: Optional[List[np.ndarray]]
     weights: List[np.ndarray]
+    layer_sizes: List[int]
 
     LAYER_SIZES = (7, 5, 5, 2)
 
-    def __init__(self, prev_fitness: Optional[float] = None):
-        self.prev_fitness = prev_fitness
+    def __init__(self):
+        self.prev_fitness = None
         self.prev_weights = None
 
         self.weights = [
@@ -49,6 +47,7 @@ class CarNN:
     def activate(self, inputs: InputVector) -> List[float]:
         """
         Activate the neural network.
+
         :param inputs: The input vector
         :return: The output vector
         """
@@ -74,6 +73,7 @@ class CarNN:
     ):
         """
         Mutate the neural network.
+
         :param noise: The noise
         :param learn_rate: The learning rate
         :param curr_fitness: The current fitness
@@ -116,6 +116,7 @@ class CarNN:
     def from_string(self, string: str):
         """
         Load the neural network from a string.
+
         :param string: The string
         :return: None
         """

@@ -5,8 +5,8 @@ from typing import Tuple
 
 import pygame
 
+from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
-from engine.entity.car import AICar
 from engine.entity.track import Track
 
 DESCRIPTION = (
@@ -24,6 +24,7 @@ WEIGHTS_PATH = Path("data/weights")
 def main_scene(args: argparse.Namespace):
     """
     Main scene for training the AI
+
     :return: None
     """
     pygame.init()
@@ -36,7 +37,7 @@ def main_scene(args: argparse.Namespace):
 
     # Setup
     track = Track.load(args.track)
-
+    camera = Camera(screen)
     ai_cars = [AICar() for _ in range(args.ai_count)]
 
     # Weight
@@ -52,27 +53,28 @@ def main_scene(args: argparse.Namespace):
         weights_exist = False
 
     for i, car in enumerate(ai_cars):
-        car.set_start_pos(track)
+        car.reset_state(track)
         if weights_exist:
             car.nn.from_string(weights[i % len(weights)])
             if i > len(weights):
                 car.nn.mutate(0.01)
 
-    camera = Camera(screen)
-
     # Next iteration function for the AI
     def next_iteration():
         select_count = 2
         ai_cars.sort(key=lambda x: x.get_fitness(), reverse=True)
+
         for i in range(select_count, len(ai_cars)):
             ai_cars[i].nn = deepcopy(ai_cars[i % select_count].nn)
-
-            # Change if needed
             ai_cars[i].nn.mutate(0.2, 0.5, ai_cars[i].get_fitness())
+
+        for car in ai_cars:
+            car.reset_state(track)
 
     # Main loop
     running = True
     fixed_dt = 0.032
+    skip_frame_counter = 0
     while running:
         # Handle events
         for event in pygame.event.get():
@@ -93,24 +95,25 @@ def main_scene(args: argparse.Namespace):
                     )
                 if event.key == pygame.K_RETURN:
                     next_iteration()
-                    for car in ai_cars:
-                        car.set_start_pos(track)
 
         # If all cars out of track then next iteration
         if all(car.out_of_track for car in ai_cars):
             next_iteration()
-            for car in ai_cars:
-                car.set_start_pos(track)
 
         # Update
         for car in ai_cars:
             if not car.out_of_track:
                 car.update(fixed_dt, track)
 
-        camera.car = max(ai_cars, key=lambda x: x.get_fitness())
-        camera.update(fixed_dt, lerp_follow=True)
+        camera.update(fixed_dt, max(ai_cars, key=lambda x: x.get_fitness()))
 
-        # Draw
+        # Skip frames
+        skip_frame_counter += 1
+        if skip_frame_counter < args.skip_frames:
+            continue
+        skip_frame_counter = 0
+
+        # Render
         screen.fill((255, 255, 255))
 
         track.draw(screen, pygame.Color(0, 0, 0), camera, 5)
@@ -119,7 +122,7 @@ def main_scene(args: argparse.Namespace):
 
         pygame.display.update()
 
-        if args.limit_fps:
+        if args.limit_fps and args.skip_frames == 0:
             clock.tick(60)
 
     pygame.quit()
@@ -128,6 +131,7 @@ def main_scene(args: argparse.Namespace):
 def configure_parser(parser: argparse.ArgumentParser):
     """
     Configure the parser for the program
+
     :param parser: The parser to configure
     :return: None
     """
@@ -153,6 +157,17 @@ def configure_parser(parser: argparse.ArgumentParser):
         dest="limit_fps",
         action="store_true",
         help="Whether to run with limited 60 fps",
+    )
+    parser.add_argument(
+        "--skip-frames",
+        "-s",
+        dest="skip_frames",
+        type=int,
+        help=(
+            "The number of frames to skip for each update, enabling this also"
+            " disables the 60 fps limit"
+        ),
+        default=0,
     )
     parser.add_argument(
         "--resolution",
@@ -182,6 +197,7 @@ def configure_parser(parser: argparse.ArgumentParser):
 def main():
     """
     Entry point for the program in training mode
+
     :return: None
     """
     parser = argparse.ArgumentParser(

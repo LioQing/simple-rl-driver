@@ -23,6 +23,7 @@ class BezierCurvePoint:
     def position(self) -> Tuple[int, int]:
         """
         Get the position of the point.
+
         :return: The position of the point
         """
         return self.x, self.y
@@ -30,6 +31,7 @@ class BezierCurvePoint:
     def relative_control_point(self) -> Tuple[int, int]:
         """
         Get the relative control point.
+
         :return: The relative control point
         """
         return self.control_x - self.x, self.control_y - self.y
@@ -37,6 +39,7 @@ class BezierCurvePoint:
     def opposite_control_point(self) -> Tuple[int, int]:
         """
         Get the opposite control point.
+
         :return: The opposite control point
         """
         return (
@@ -47,6 +50,7 @@ class BezierCurvePoint:
     def translated(self, x: int, y: int) -> "BezierCurvePoint":
         """
         Get the translated point.
+
         :param x: The x translation
         :param y: The y translation
         :return: The translated point
@@ -58,6 +62,7 @@ class BezierCurvePoint:
     def translate(self, x: int, y: int):
         """
         Translate the point.
+
         :param x: The x translation
         :param y: The y translation
         :return: None
@@ -70,6 +75,7 @@ class BezierCurvePoint:
     def scaled(self, scale: int) -> "BezierCurvePoint":
         """
         Get the scaled point.
+
         :param scale: The scale factor
         :return: The scaled point
         """
@@ -83,6 +89,7 @@ class BezierCurvePoint:
     def scale(self, scale: int):
         """
         Scale the point.
+
         :param scale: The scale factor
         :return: None
         """
@@ -109,6 +116,7 @@ class BezierCurve:
     def get_polyline(self, steps: float = 0.01) -> Iterable[Tuple[int, int]]:
         """
         Get the polyline of the Bézier curve.
+
         :param steps: The number of steps to take between each pair of points
         :return: The polyline of the Bézier curve
         """
@@ -136,6 +144,7 @@ class BezierCurve:
     ):
         """
         Draw the Bézier curve in edit mode.
+
         :param surface: The surface to draw on
         :param color: The color to draw with
         :param width: The width of the lines
@@ -176,6 +185,7 @@ class BezierCurve:
     ):
         """
         Draw the Bézier curve.
+
         :param surface: The surface to draw on
         :param color: The color to draw with
         :param width: The width of the lines
@@ -190,6 +200,7 @@ class BezierCurve:
     def serialize(self) -> str:
         """
         Serialize the Bézier curve.
+
         :return: The serialized Bézier curve string
         """
         return "\n".join(
@@ -200,6 +211,7 @@ class BezierCurve:
     def deserialize(data: str) -> "BezierCurve":
         """
         Deserialize the Bézier curve.
+
         :param data: The serialized Bézier curve string
         :return: The deserialized Bézier curve
         """

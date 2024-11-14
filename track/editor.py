@@ -56,6 +56,7 @@ class TrackEditor:
         """
         Load the track editor for the given track from file system,
         creates a new file if it does not exist.
+
         :param name: The name of the track to load
         :param directory: The directory to load the track from
         :return: The track editor
@@ -74,6 +75,7 @@ class TrackEditor:
     def save(self, name: str, directory: Path = DEFAULT_DIRECTORY):
         """
         Save the track editor to file system.
+
         :param name: The name of the track to save
         :param directory: The directory to save the track to
         :return: None
@@ -89,6 +91,7 @@ class TrackEditor:
     def on_mouse_up(self, button: int):
         """
         Handle the mouse up event.
+
         :param button: The button that was pressed
         :return: None
         """
@@ -111,6 +114,7 @@ class TrackEditor:
     def on_mouse_down(self, button: int):
         """
         Handle the mouse down event.
+
         :param button: The button that was pressed
         :return: None
         """
@@ -151,6 +155,7 @@ class TrackEditor:
     def on_mouse_moved(self, screen: pygame.Surface):
         """
         Handle the mouse moved event.
+
         :param screen: The screen
         :return: None
         """
@@ -177,6 +182,7 @@ class TrackEditor:
     def on_key_pressed(self, key: int):
         """
         Handle the key pressed event.
+
         :param key: The key that was pressed
         :return: None
         """
@@ -198,6 +204,7 @@ class TrackEditor:
     ):
         """
         Draw the editor.
+
         :param screen: The screen to draw on
         :param line_color: The color of the line
         :param line_width: The width of the line

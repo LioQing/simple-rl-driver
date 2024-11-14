@@ -4,14 +4,16 @@ from typing import Tuple
 
 import pygame
 
+from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
-from engine.entity.car import AICar, PlayerCar
+from engine.entity.player_car import PlayerCar
 from engine.entity.track import Track
 
 DESCRIPTION = (
     "Game play mode.\n"
     "\n"
     "controls:\n"
+    "  ctrl + r                        restart the program\n"
     "  ctrl + q                        quit the program\n"
 )
 
@@ -21,6 +23,8 @@ WEIGHTS_PATH = Path("data/weights")
 def main_scene(args: argparse.Namespace):
     """
     Main scene for playing the game
+
+    :param args: The arguments
     :return: None
     """
     pygame.init()
@@ -33,9 +37,9 @@ def main_scene(args: argparse.Namespace):
 
     # Setup
     track = Track.load(args.track)
-
     player_car = PlayerCar()
-    player_car.set_start_pos(track)
+    if not args.follow_ai:
+        player_car.reset_state(track)
 
     ai_cars = []
     if args.weights:
@@ -50,12 +54,20 @@ def main_scene(args: argparse.Namespace):
 
         weights = weights_file.read_text().splitlines()
         for i, car in enumerate(ai_cars):
-            car.set_start_pos(track)
+            car.reset_state(track)
             car.nn.from_string(weights[i % len(weights)])
             if i > len(weights):
                 car.nn.mutate(0.01)
 
     camera = Camera(screen, player_car)
+
+    # Restart function
+    def restart():
+        if not args.follow_ai:
+            player_car.reset_state(track)
+
+        for car in ai_cars:
+            car.reset_state(track)
 
     # Main loop
     running = True
@@ -68,22 +80,42 @@ def main_scene(args: argparse.Namespace):
             elif event.type == pygame.KEYDOWN:
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
+                    and event.key == pygame.K_r
+                ):
+                    restart()
+                if (
+                    pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_q
                 ):
                     running = False
 
         # Update
-        player_car.update(fixed_dt, track)
+        if not args.follow_ai:
+            player_car.update(fixed_dt, track)
+
         for car in ai_cars:
-            if not car.out_of_track:
-                car.update(fixed_dt, track)
-        camera.update(fixed_dt)
+            if car.out_of_track:
+                continue
+
+            car.update(fixed_dt, track)
+
+        camera.update(
+            fixed_dt,
+            (
+                max(ai_cars, key=lambda x: x.get_fitness())
+                if args.follow_ai
+                else None
+            ),
+        )
 
         # draws
         screen.fill((255, 255, 255))
 
         track.draw(screen, pygame.Color(0, 0, 0), camera, 5)
-        player_car.draw(screen, pygame.Color(0, 0, 0), camera)
+
+        if not args.follow_ai:
+            player_car.draw(screen, pygame.Color(0, 0, 0), camera)
+
         for car in ai_cars:
             car.draw(screen, pygame.Color(0, 0, 0), camera)
 
@@ -97,6 +129,7 @@ def main_scene(args: argparse.Namespace):
 def configure_parser(parser: argparse.ArgumentParser):
     """
     Configure the parser for the program
+
     :param parser: The parser to configure
     :return: None
     """
@@ -131,6 +164,13 @@ def configure_parser(parser: argparse.ArgumentParser):
         help="The weights file to use for the AI",
     )
     parser.add_argument(
+        "--follow-ai",
+        "-n",
+        dest="follow_ai",
+        action="store_true",
+        help="Whether to follow the AI car and disable player car",
+    )
+    parser.add_argument(
         "--ai-count",
         "-a",
         dest="ai_count",
@@ -143,6 +183,7 @@ def configure_parser(parser: argparse.ArgumentParser):
 def main():
     """
     Entry point for the program in game mode
+
     :return: None
     """
     parser = argparse.ArgumentParser(

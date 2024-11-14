@@ -50,6 +50,7 @@ class Track:
     ) -> "Track":
         """
         Load the track from file system.
+
         :param name: The name of the track to load
         :param directory: The directory to load the track from
         :param width: The width of the track
@@ -79,6 +80,7 @@ class Track:
     ):
         """
         Draw the track on the screen.
+
         :param screen: The screen to draw on
         :param color: The color of the track
         :param camera: The camera to use

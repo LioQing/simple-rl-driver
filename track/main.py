@@ -21,6 +21,8 @@ DESCRIPTION = (
 def main_scene(args: argparse.Namespace):
     """
     Main scene for editing the track
+
+    :param args: The arguments
     :return: None
     """
     pygame.init()
@@ -32,7 +34,7 @@ def main_scene(args: argparse.Namespace):
     )
 
     # Setup
-    editor = TrackEditor.load(args.name)
+    editor = TrackEditor.load(args.track)
 
     # Main loop
     running = True
@@ -54,7 +56,7 @@ def main_scene(args: argparse.Namespace):
                     pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_s
                 ):
-                    editor.save(args.name)
+                    editor.save(args.track)
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_q
@@ -75,13 +77,14 @@ def main_scene(args: argparse.Namespace):
 def configure_parser(parser: argparse.ArgumentParser):
     """
     Configure the parser for the program
+
     :param parser: The parser to configure
     :return: None
     """
     parser.add_argument(
-        "--name",
-        "-n",
-        dest="name",
+        "--track",
+        "-t",
+        dest="track",
         type=str,
         help="The name of the track to edit",
         required=True,
@@ -106,6 +109,7 @@ def configure_parser(parser: argparse.ArgumentParser):
 def main():
     """
     Entry point for the program in track mode
+
     :return: None
     """
     parser = argparse.ArgumentParser(

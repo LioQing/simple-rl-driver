@@ -1,5 +1,6 @@
 import math
 
+
 class Transformable:
     """
     A class to represent a Transformable object.
@@ -17,6 +18,7 @@ class Transformable:
     def translate(self, x: float, y: float):
         """
         Translate the object.
+
         :param x: The x translation
         :param y: The y translation
         :return: None
@@ -27,6 +29,7 @@ class Transformable:
     def translate_forward(self, dist: float):
         """
         Translate the object forward.
+
         :param dist: The distance to translate
         :return: None
         """
@@ -35,6 +38,7 @@ class Transformable:
     def rotate(self, rad: float):
         """
         Rotate the object.
+
         :param rad: The rotation in radians
         :return: None
         """
