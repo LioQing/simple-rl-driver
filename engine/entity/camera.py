@@ -1,10 +1,11 @@
-import math
-from typing import Optional, Tuple
+from typing import Optional
 
+import numpy as np
+import numpy.typing as npt
 import pygame
 
 from engine.entity.transformable import Transformable
-from engine.lerp import lerp
+from engine.utils import lerp, rot_mat, vec2d
 
 
 class Camera(Transformable):
@@ -22,23 +23,22 @@ class Camera(Transformable):
         self.follow = follow
         self.screen = screen
 
-    def get_coord(self, x: float, y: float) -> Tuple[float, float]:
+    def get_coord(
+        self, pos: npt.NDArray[np.float32]
+    ) -> npt.NDArray[np.float32]:
         """
         Get the coordinate from the camera's perspective.
 
-        :param x: The x coordinate
-        :param y: The y coordinate
+        :param pos: The position to transform
         :return: The transformed coordinate
         """
-        rel_x = x - self.x
-        rel_y = y - self.y
+        local_pos = pos - self.pos
 
-        rot_x = rel_x * math.cos(self.rot) - rel_y * math.sin(self.rot)
-        rot_y = rel_x * math.sin(self.rot) + rel_y * math.cos(self.rot)
+        rot_pos = np.dot(rot_mat(-self.rot), local_pos)
 
-        center = self.screen.get_rect().center
+        center = vec2d(*self.screen.get_rect().center)
 
-        return rot_x + center[0], rot_y + center[1]
+        return center + rot_pos
 
     def update(self, dt: float, follow: Optional[Transformable] = None):
         """
@@ -50,10 +50,8 @@ class Camera(Transformable):
         """
         if follow:
             self.follow = follow
-            self.x = lerp(self.x, self.follow.x, max(10 * dt, 1))
-            self.y = lerp(self.y, self.follow.y, max(10 * dt, 1))
+            self.pos = lerp(self.pos, self.follow.pos, 0.5)
         else:
-            self.x = self.follow.x
-            self.y = self.follow.y
+            self.pos = self.follow.pos
 
         self.rot = self.follow.rot

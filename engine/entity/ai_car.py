@@ -1,6 +1,5 @@
-import math
-from typing import List
-
+import numpy as np
+import numpy.typing as npt
 import pygame
 from shapely import LinearRing, LineString, Point
 
@@ -8,6 +7,7 @@ from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
 from engine.entity.track import Track
+from engine.utils import unit_vec_at, vec2d
 
 
 class AICar(Car):
@@ -17,22 +17,25 @@ class AICar(Car):
 
     forward: float
     turn: float
-    sensors: List[float]
+    sensor_rots: npt.NDArray[np.float32]
+    sensors: npt.NDArray[np.float32]
     nn: CarNN
     out_of_track: bool
-    outputs: List[float]
+    outputs: npt.NDArray[np.float32]
 
     SENSOR_DIST = 500
-    SENSOR_COUNT = 7
 
-    def __init__(self):
+    def __init__(self, sensor_rots: npt.NDArray[np.float32]):
         super().__init__()
         self.nn = CarNN()
-        self.outputs = [0.0, 0.0]
+        self.outputs = vec2d(0, 0)
+        self.sensor_rots = sensor_rots
 
         self.forward = 0
         self.turn = 0
-        self.sensors = [self.SENSOR_DIST] * self.SENSOR_COUNT
+        self.sensors = np.array(
+            [self.SENSOR_DIST] * len(self.sensor_rots), dtype=np.float32
+        )
         self.out_of_track = False
 
     def reset_state(self, track: Track):
@@ -44,7 +47,7 @@ class AICar(Car):
         """
         self.forward = 0
         self.turn = 0
-        self.sensors = [self.SENSOR_DIST] * self.SENSOR_COUNT
+        self.sensors.fill(self.SENSOR_DIST)
         self.out_of_track = False
         super().reset_state(track)
 
@@ -57,16 +60,12 @@ class AICar(Car):
         :return: None
         """
         # Update sensors
-        self.sensors = [self.SENSOR_DIST] * self.SENSOR_COUNT
-        self_pos = Point(self.x, self.y)
+        self.sensors.fill(self.SENSOR_DIST)
+        self_pos = Point(self.pos)
         track_edges = LinearRing(track.polygon)
-        for i in range(len(self.sensors)):
-            angle = -self.rot + math.radians(
-                180 + i * 180 / (self.SENSOR_COUNT - 1)
-            )
+        for i, rot in enumerate(self.sensor_rots + self.rot):
             sensor_end = Point(
-                self.x + math.cos(angle) * self.SENSOR_DIST,
-                self.y + math.sin(angle) * self.SENSOR_DIST,
+                self.pos + (unit_vec_at(rot) * self.SENSOR_DIST)
             )
 
             intersection = track_edges.intersection(
@@ -97,24 +96,13 @@ class AICar(Car):
             return
 
         # Draw sensors lines
-        for i in range(len(self.sensors)):
-            if self.sensors[i] == float("inf"):
-                continue
-            angle = -self.rot + math.radians(
-                180 + i * 180 / (self.SENSOR_COUNT - 1)
-            )
-            line = (
-                (self.x, self.y),
-                (
-                    self.x + math.cos(angle) * self.sensors[i],
-                    self.y + math.sin(angle) * self.sensors[i],
-                ),
-            )
+        for i, rot in enumerate(self.sensor_rots + self.rot):
+            sensor_end = self.pos + (unit_vec_at(rot) * self.sensors[i])
             pygame.draw.line(
                 screen,
                 pygame.Color(255, 0, 0),
-                camera.get_coord(*line[0]),
-                camera.get_coord(*line[1]),
+                camera.get_coord(self.pos),
+                camera.get_coord(sensor_end),
             )
 
     def get_fitness(self) -> float:
@@ -127,9 +115,7 @@ class AICar(Car):
 
     def _get_input(self) -> Car.Input:
         self.outputs = self.nn.activate(
-            CarNN.InputVector(
-                [sense / self.SENSOR_DIST for sense in self.sensors],
-            )
+            self.sensors / self.SENSOR_DIST,
         )
 
         self.forward = (self.outputs[0] * 2) - 1

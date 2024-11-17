@@ -1,7 +1,9 @@
 import math
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List
 
+import numpy as np
+import numpy.typing as npt
 import pygame
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
@@ -9,6 +11,7 @@ from shapely.geometry.polygon import Polygon
 from engine.entity.camera import Camera
 from engine.entity.track import Track
 from engine.entity.transformable import Transformable
+from engine.utils import rot_mat, vec2d
 
 
 class Car(Transformable):
@@ -40,13 +43,12 @@ class Car(Transformable):
 
     def __init__(
         self,
-        x: float = 0,
-        y: float = 0,
+        pos: npt.NDArray[np.float32] = vec2d(0, 0),
         rot: float = 0,
         max_speed: float = DEFAULT_MAX_SPEED,
         turn_speed: float = DEFAULT_TURN_SPEED,
     ):
-        super().__init__(x, y, rot)
+        super().__init__(pos, rot)
         self.speed = 0.0
         self.acceleration = 0.0
         self.max_speed = max_speed
@@ -70,21 +72,17 @@ class Car(Transformable):
         :param track: The track
         :return: None
         """
-        self.x = track.curve.pts[0].x
-        self.y = track.curve.pts[0].y
+        self.pos = track.curve.pts[0].pos.astype(np.float32)
         self.speed = 0.0
         self.acceleration = 0.0
         self.out_of_track = False
 
         # TODO: Put this into a track method
-        direction = track.curve.pts[0].relative_control_point()
-        if direction == (0, 0):
-            direction = (
-                track.curve.pts[1].x - track.curve.pts[0].x,
-                track.curve.pts[1].y - track.curve.pts[0].y,
-            )
+        direction = track.curve.pts[0].local_control
+        if direction[0] == 0 and direction[1] == 0:
+            direction = track.curve.pts[1].pos - track.curve.pts[0].pos
 
-        self.rot = math.atan2(*direction) - math.pi
+        self.rot = np.atan2(*direction) - math.pi
         self.progress = 0
         self.total_progress = len(track.polyline)
 
@@ -112,7 +110,7 @@ class Car(Transformable):
             self.speed -= self.speed * deceleration * dt
 
         self.out_of_track = not Polygon(track.polygon).contains(
-            Point(self.x, self.y)
+            Point(self.pos)
         )
 
         if (
@@ -121,38 +119,37 @@ class Car(Transformable):
         ):
             self.speed -= self.speed * out_of_track_deceleration * dt
 
-        self.translate_forward(-self.speed * dt)
-        self.rotate(-input_data.turn * self.turn_speed * dt)
+        self.translate_forward(self.speed * dt)
+        self.rotate(input_data.turn * self.turn_speed * dt)
 
         # Progress
         check_point_idx = self.progress + 1
         if check_point_idx < len(track.polyline):
             check_point = Point(track.polyline[check_point_idx])
             if (
-                check_point.distance(Point(self.x, self.y))
+                check_point.distance(Point(self.pos))
                 < track.width + self.HEIGHT
             ):
                 self.progress += 1
 
-    def get_transform(self) -> List[Tuple[float, float]]:
+    def get_corners(self) -> List[npt.NDArray[np.float32]]:
         """
-        Get the transformed points of the car.
+        Get the transformed corners of the car.
 
-        :return: The transformed points of the car
+        :return: The transformed corners of the car
         """
 
         def rotate_angle(
             x: float, y: float, rad: float
-        ) -> Tuple[float, float]:
-            c = math.cos(rad)
-            s = math.sin(rad)
-            return self.x + c * x - s * y, self.y + s * x + c * y
+        ) -> npt.NDArray[np.float32]:
+            pos = vec2d(x, y)
+            return self.pos + np.dot(rot_mat(rad), pos)
 
         return [
-            rotate_angle(-self.WIDTH / 2, -self.HEIGHT / 2, -self.rot),
-            rotate_angle(self.WIDTH / 2, -self.HEIGHT / 2, -self.rot),
-            rotate_angle(self.WIDTH / 2, self.HEIGHT / 2, -self.rot),
-            rotate_angle(-self.WIDTH / 2, self.HEIGHT / 2, -self.rot),
+            rotate_angle(-self.WIDTH / 2, -self.HEIGHT / 2, self.rot),
+            rotate_angle(self.WIDTH / 2, -self.HEIGHT / 2, self.rot),
+            rotate_angle(self.WIDTH / 2, self.HEIGHT / 2, self.rot),
+            rotate_angle(-self.WIDTH / 2, self.HEIGHT / 2, self.rot),
         ]
 
     def draw(
@@ -166,7 +163,7 @@ class Car(Transformable):
         :param camera: The camera
         :return: None
         """
-        polygon = [camera.get_coord(x, y) for x, y in self.get_transform()]
+        polygon = [camera.get_coord(corners) for corners in self.get_corners()]
 
         pygame.draw.polygon(screen, color, polygon)
         if self.out_of_track:

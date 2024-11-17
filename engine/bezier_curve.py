@@ -1,102 +1,101 @@
-from typing import Iterable, List, Tuple
+from dataclasses import dataclass
+from typing import Iterable, List
 
 import numpy as np
+import numpy.typing as npt
 import pygame
 
+from engine.utils import vec2d
 
+
+@dataclass
 class BezierCurvePoint:
     """
     A class to represent a point in a Bézier curve.
     """
 
-    x: int
-    y: int
-    control_x: int
-    control_y: int
+    pos: npt.NDArray[np.int32]
+    control: npt.NDArray[np.int32]
 
-    def __init__(self, x: int, y: int, control_x: int, control_y: int):
-        self.x = x
-        self.y = y
-        self.control_x = control_x
-        self.control_y = control_y
-
-    def position(self) -> Tuple[int, int]:
+    @property
+    def local_control(self) -> npt.NDArray[np.int32]:
         """
-        Get the position of the point.
+        Get the local control point.
 
-        :return: The position of the point
+        :return: The local control point
         """
-        return self.x, self.y
+        return self.control - self.pos
 
-    def relative_control_point(self) -> Tuple[int, int]:
-        """
-        Get the relative control point.
-
-        :return: The relative control point
-        """
-        return self.control_x - self.x, self.control_y - self.y
-
-    def opposite_control_point(self) -> Tuple[int, int]:
+    @property
+    def opp_control(self) -> npt.NDArray[np.int32]:
         """
         Get the opposite control point.
 
         :return: The opposite control point
         """
-        return (
-            self.x - self.relative_control_point()[0],
-            self.y - self.relative_control_point()[1],
-        )
+        return self.pos - self.local_control
 
-    def translated(self, x: int, y: int) -> "BezierCurvePoint":
+    def move_to(self, pos: npt.NDArray[np.int32]):
         """
-        Get the translated point.
+        Move the point to a new position.
 
-        :param x: The x translation
-        :param y: The y translation
-        :return: The translated point
+        :param pos: The new position
+        :return: None
         """
-        return BezierCurvePoint(
-            self.x + x, self.y + y, self.control_x + x, self.control_y + y
-        )
+        self.control = pos + self.local_control
+        self.pos = pos
 
-    def translate(self, x: int, y: int):
+    def moved_to(self, pos: npt.NDArray[np.int32]) -> "BezierCurvePoint":
+        """
+        Get a new point moved to a new position.
+
+        :param pos: The new position
+        :return: The new point
+        """
+        return BezierCurvePoint(pos, pos + self.local_control)
+
+    def translate(self, delta: npt.NDArray[np.int32]):
         """
         Translate the point.
 
-        :param x: The x translation
-        :param y: The y translation
+        :param delta: The translation vector
         :return: None
         """
-        self.x += x
-        self.y += y
-        self.control_x += x
-        self.control_y += y
+        self.pos += delta
+        self.control += delta
 
-    def scaled(self, scale: int) -> "BezierCurvePoint":
+    def translated(self, delta: npt.NDArray[np.int32]) -> "BezierCurvePoint":
         """
-        Get the scaled point.
+        Get a new point translated.
 
-        :param scale: The scale factor
-        :return: The scaled point
+        :param delta: The translation vector
+        :return: The new point
         """
-        return BezierCurvePoint(
-            self.x * scale,
-            self.y * scale,
-            self.control_x * scale,
-            self.control_y * scale,
+        return BezierCurvePoint(self.pos + delta, self.control + delta)
+
+    def serialize(self) -> str:
+        """
+        Serialize the point.
+
+        :return: The serialized point string
+        """
+        return (
+            f"{self.pos[0]} {self.pos[1]} {self.control[0]} {self.control[1]}"
         )
 
-    def scale(self, scale: int):
+    @classmethod
+    def deserialize(cls, data: str) -> "BezierCurvePoint":
         """
-        Scale the point.
+        Deserialize the point.
 
-        :param scale: The scale factor
-        :return: None
+        :param data: The serialized point string
+        :return: The deserialized point
         """
-        self.x *= scale
-        self.y *= scale
-        self.control_x *= scale
-        self.control_y *= scale
+        x, y, cx, cy = map(int, data.strip().split())
+        return BezierCurvePoint(
+            vec2d(x, y, dtype=np.int32),
+            vec2d(cx, cy, dtype=np.int32),
+        )
 
 
 class BezierCurve:
@@ -113,7 +112,9 @@ class BezierCurve:
         self.pts = list(pts)
         self.debug_point_size = debug_point_size
 
-    def get_polyline(self, steps: float = 0.01) -> Iterable[Tuple[int, int]]:
+    def get_polyline(
+        self, steps: float = 0.01
+    ) -> Iterable[npt.NDArray[np.float32]]:
         """
         Get the polyline of the Bézier curve.
 
@@ -121,20 +122,10 @@ class BezierCurve:
         :return: The polyline of the Bézier curve
         """
         return (
-            (
-                int(
-                    (1 - i) ** 3 * p1.x
-                    + 3 * (1 - i) ** 2 * i * p1.control_x
-                    + 3 * (1 - i) * i**2 * p2.opposite_control_point()[0]
-                    + i**3 * p2.x
-                ),
-                int(
-                    (1 - i) ** 3 * p1.y
-                    + 3 * (1 - i) ** 2 * i * p1.control_y
-                    + 3 * (1 - i) * i**2 * p2.opposite_control_point()[1]
-                    + i**3 * p2.y
-                ),
-            )
+            (1 - i) ** 3 * p1.pos
+            + 3 * (1 - i) ** 2 * i * p1.control
+            + 3 * (1 - i) * i**2 * p2.opp_control
+            + i**3 * p2.pos
             for p1, p2 in zip(self.pts, self.pts[1:])
             for i in np.arange(0, 1, steps)
         )
@@ -151,28 +142,26 @@ class BezierCurve:
         :return: None
         """
         for p in self.pts:
-            pygame.draw.circle(
-                surface, color, (p.x, p.y), self.debug_point_size, 0
-            )
+            pygame.draw.circle(surface, color, p.pos, self.debug_point_size, 0)
             pygame.draw.circle(
                 surface,
                 color,
-                (p.control_x, p.control_y),
+                p.control,
                 self.debug_point_size,
                 0,
             )
             pygame.draw.circle(
                 surface,
                 color,
-                p.opposite_control_point(),
+                p.opp_control,
                 self.debug_point_size,
                 1,
             )
             pygame.draw.line(
                 surface,
                 color,
-                p.opposite_control_point(),
-                (p.control_x, p.control_y),
+                p.opp_control,
+                p.control,
                 width,
             )
 
@@ -203,12 +192,10 @@ class BezierCurve:
 
         :return: The serialized Bézier curve string
         """
-        return "\n".join(
-            f"{p.x} {p.y} {p.control_x} {p.control_y}" for p in self.pts
-        )
+        return "\n".join(p.serialize() for p in self.pts)
 
-    @staticmethod
-    def deserialize(data: str) -> "BezierCurve":
+    @classmethod
+    def deserialize(cls, data: str) -> "BezierCurve":
         """
         Deserialize the Bézier curve.
 
@@ -216,7 +203,7 @@ class BezierCurve:
         :return: The deserialized Bézier curve
         """
         return BezierCurve(
-            BezierCurvePoint(*map(int, line.strip().split()))
+            BezierCurvePoint.deserialize(line)
             for line in data.split("\n")
             if line.strip()
         )

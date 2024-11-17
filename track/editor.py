@@ -2,10 +2,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
 
+import numpy as np
 import pygame
 
 import engine.bezier_curve as bc
 from engine.bezier_curve import BezierCurve
+from engine.utils import vec2d
 
 
 class TrackEditor:
@@ -98,13 +100,13 @@ class TrackEditor:
         if button != 1:
             return
 
-        x, y = pygame.mouse.get_pos()
+        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if (
             isinstance(self.edit, TrackEditor.ControlState)
             and self.edit.is_new
         ):
-            self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
+            self.curve.pts.append(bc.BezierCurvePoint(mouse_pos, mouse_pos))
             self.edit = TrackEditor.PointState(
                 len(self.curve.pts) - 1, is_new=True
             )
@@ -121,29 +123,27 @@ class TrackEditor:
         if button != 1:
             return
 
-        x, y = pygame.mouse.get_pos()
+        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if self.edit is None:
-            for i, pt in enumerate(self.curve.pts):
-                dist = (pt.x - x) ** 2 + (pt.y - y) ** 2
-                control_dist = (pt.control_x - x) ** 2 + (
-                    pt.control_y - y
-                ) ** 2
-                opposite_control_dist = (
-                    pt.opposite_control_point()[0] - x
-                ) ** 2 + (pt.opposite_control_point()[1] - y) ** 2
+            for i, p in enumerate(self.curve.pts):
+                dist = np.linalg.norm(p.pos - mouse_pos)
+                control_dist = np.linalg.norm(p.control - mouse_pos)
+                opp_control_dist = np.linalg.norm(p.opp_control - mouse_pos)
 
-                if control_dist < self.point_size**2:
+                if control_dist < self.point_size:
                     self.edit = TrackEditor.ControlState(i)
                     break
-                elif opposite_control_dist < self.point_size**2:
+                elif opp_control_dist < self.point_size:
                     self.edit = TrackEditor.OppositeControlState(i)
                     break
-                elif dist < self.point_size**2:
+                elif dist < self.point_size:
                     self.edit = TrackEditor.PointState(i)
                     break
             else:
-                self.curve.pts.append(bc.BezierCurvePoint(x, y, x, y))
+                self.curve.pts.append(
+                    bc.BezierCurvePoint(mouse_pos, mouse_pos)
+                )
                 self.edit = TrackEditor.ControlState(
                     len(self.curve.pts) - 1, is_new=True
                 )
@@ -159,25 +159,17 @@ class TrackEditor:
         :param screen: The screen
         :return: None
         """
-        x, y = pygame.mouse.get_pos()
+        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if isinstance(self.edit, TrackEditor.PointState):
-            bounded_x = max(0, min(x, screen.get_width()))
-            bounded_y = max(0, min(y, screen.get_height()))
-            self.curve.pts[self.edit.index].translate(
-                bounded_x - self.curve.pts[self.edit.index].x,
-                bounded_y - self.curve.pts[self.edit.index].y,
-            )
+            bounded = np.clip(mouse_pos, (0, 0), screen.get_size())
+            self.curve.pts[self.edit.index].move_to(bounded)
         elif isinstance(self.edit, TrackEditor.ControlState):
-            self.curve.pts[self.edit.index].control_x = x
-            self.curve.pts[self.edit.index].control_y = y
+            self.curve.pts[self.edit.index].control = mouse_pos
         elif isinstance(self.edit, TrackEditor.OppositeControlState):
-            self.curve.pts[self.edit.index].control_x = self.curve.pts[
+            self.curve.pts[self.edit.index].control = self.curve.pts[
                 self.edit.index
-            ].x - (x - self.curve.pts[self.edit.index].x)
-            self.curve.pts[self.edit.index].control_y = self.curve.pts[
-                self.edit.index
-            ].y - (y - self.curve.pts[self.edit.index].y)
+            ].pos - (mouse_pos - self.curve.pts[self.edit.index].pos)
 
     def on_key_pressed(self, key: int):
         """

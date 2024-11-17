@@ -1,11 +1,14 @@
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
+import numpy as np
+import numpy.typing as npt
 import pyclipper
 import pygame
 
 import engine.bezier_curve as bc
 from engine.entity.camera import Camera
+from engine.utils import vec2d
 
 
 class Track:
@@ -16,8 +19,8 @@ class Track:
     curve: bc.BezierCurve
     width: int
     polyline_factor: float
-    polyline: List[Tuple[float, float]]
-    polygon: List[Tuple[float, float]]
+    polyline: List[npt.NDArray[np.float32]]
+    polygon: List[npt.NDArray[np.float32]]
 
     DEFAULT_POLYLINE_FACTOR = 0.05
     DEFAULT_DIRECTORY = Path("data/tracks")
@@ -38,7 +41,7 @@ class Track:
 
         pco = pyclipper.PyclipperOffset()
         pco.AddPath(self.polyline, pyclipper.JT_ROUND, pyclipper.ET_OPENROUND)
-        self.polygon = pco.Execute(self.width)[0]
+        self.polygon = [vec2d(*p) for p in pco.Execute(self.width)[0]]
 
     @staticmethod
     def load(
@@ -65,8 +68,11 @@ class Track:
 
         curve = bc.BezierCurve.deserialize(track_file.read_text())
         curve.pts = [
-            p.translated(-curve.pts[0].x, -curve.pts[0].y).scaled(scale)
-            for p in curve.pts
+            bc.BezierCurvePoint(
+                p.pos * scale,
+                p.control * scale,
+            )
+            for p in (p.translated(-curve.pts[0].pos) for p in curve.pts)
         ]
 
         return Track(curve, width, polyline_factor)
@@ -90,6 +96,6 @@ class Track:
         pygame.draw.polygon(
             screen,
             color,
-            [camera.get_coord(x, y) for x, y in self.polygon],
+            [camera.get_coord(p) for p in self.polygon],
             width,
         )

@@ -3,6 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
 import pygame
 
 from engine.entity.ai_car import AICar
@@ -38,7 +39,17 @@ def main_scene(args: argparse.Namespace):
     # Setup
     track = Track.load(args.track)
     camera = Camera(screen)
-    ai_cars = [AICar() for _ in range(args.ai_count)]
+    ai_cars = [
+        AICar(
+            np.radians(
+                np.array(
+                    [-90, -60, -30, 0, 30, 60, 90],
+                    dtype=np.float32,
+                )
+            )
+        )
+        for _ in range(args.ai_count)
+    ]
 
     # Weight
     weights_exist = True

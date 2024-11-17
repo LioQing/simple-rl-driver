@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Tuple
 
+import numpy as np
 import pygame
 
 from engine.entity.ai_car import AICar
@@ -43,7 +44,17 @@ def main_scene(args: argparse.Namespace):
 
     ai_cars = []
     if args.weights:
-        ai_cars = [AICar() for _ in range(args.ai_count)]
+        ai_cars = [
+            AICar(
+                np.radians(
+                    np.array(
+                        [-90, -60, -30, 0, 30, 60, 90],
+                        dtype=np.float32,
+                    )
+                )
+            )
+            for _ in range(args.ai_count)
+        ]
 
         # Weight
         weights_file = WEIGHTS_PATH / f"{args.weights}.txt"
@@ -53,6 +64,9 @@ def main_scene(args: argparse.Namespace):
             )
 
         weights = weights_file.read_text().splitlines()
+        if len(weights) == 0:
+            raise ValueError(f"Weights file {weights_file} is empty")
+
         for i, car in enumerate(ai_cars):
             car.reset_state(track)
             car.nn.from_string(weights[i % len(weights)])

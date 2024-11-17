@@ -1,30 +1,35 @@
 import math
 
+import numpy as np
+import numpy.typing as npt
+
+from engine.utils import unit_vec_at, vec2d
+
 
 class Transformable:
     """
     A class to represent a Transformable object.
     """
 
-    x: float
-    y: float
+    pos: npt.NDArray[np.float32]
     rot: float
 
-    def __init__(self, x: float = 0, y: float = 0, rot: float = 0):
-        self.x = x
-        self.y = y
+    def __init__(
+        self,
+        pos: npt.NDArray[np.float32] = vec2d(0, 0),
+        rot: float = 0,
+    ):
+        self.pos = pos
         self.rot = rot
 
-    def translate(self, x: float, y: float):
+    def translate(self, delta: npt.NDArray[np.float32]):
         """
         Translate the object.
 
-        :param x: The x translation
-        :param y: The y translation
+        :param delta: The translation vector
         :return: None
         """
-        self.x += x
-        self.y += y
+        self.pos += delta
 
     def translate_forward(self, dist: float):
         """
@@ -33,7 +38,7 @@ class Transformable:
         :param dist: The distance to translate
         :return: None
         """
-        self.translate(dist * math.sin(self.rot), dist * math.cos(self.rot))
+        self.translate(unit_vec_at(self.rot) * dist)
 
     def rotate(self, rad: float):
         """

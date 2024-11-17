@@ -1,7 +1,7 @@
 import pygame
 
 from engine.entity.car import Car
-from engine.lerp import lerp
+from engine.utils import lerp
 
 
 class PlayerCar(Car):
