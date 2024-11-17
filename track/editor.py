@@ -7,7 +7,7 @@ import pygame
 
 import engine.bezier_curve as bc
 from engine.bezier_curve import BezierCurve
-from engine.utils import vec2d
+from engine.utils import vec
 
 
 class TrackEditor:
@@ -100,7 +100,7 @@ class TrackEditor:
         if button != 1:
             return
 
-        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
+        mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if (
             isinstance(self.edit, TrackEditor.ControlState)
@@ -123,7 +123,7 @@ class TrackEditor:
         if button != 1:
             return
 
-        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
+        mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if self.edit is None:
             for i, p in enumerate(self.curve.pts):
@@ -159,7 +159,7 @@ class TrackEditor:
         :param screen: The screen
         :return: None
         """
-        mouse_pos = vec2d(*pygame.mouse.get_pos(), dtype=np.int32)
+        mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
         if isinstance(self.edit, TrackEditor.PointState):
             bounded = np.clip(mouse_pos, (0, 0), screen.get_size())

@@ -5,7 +5,7 @@ import numpy as np
 import numpy.typing as npt
 import pygame
 
-from engine.utils import vec2d
+from engine.utils import vec
 
 
 @dataclass
@@ -93,8 +93,8 @@ class BezierCurvePoint:
         """
         x, y, cx, cy = map(int, data.strip().split())
         return BezierCurvePoint(
-            vec2d(x, y, dtype=np.int32),
-            vec2d(cx, cy, dtype=np.int32),
+            vec(x, y, dtype=np.int32),
+            vec(cx, cy, dtype=np.int32),
         )
 
 

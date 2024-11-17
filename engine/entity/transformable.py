@@ -3,7 +3,7 @@ import math
 import numpy as np
 import numpy.typing as npt
 
-from engine.utils import unit_vec_at, vec2d
+from engine.utils import dir, vec
 
 
 class Transformable:
@@ -16,7 +16,7 @@ class Transformable:
 
     def __init__(
         self,
-        pos: npt.NDArray[np.float32] = vec2d(0, 0),
+        pos: npt.NDArray[np.float32] = vec(0, 0),
         rot: float = 0,
     ):
         self.pos = pos
@@ -38,7 +38,7 @@ class Transformable:
         :param dist: The distance to translate
         :return: None
         """
-        self.translate(unit_vec_at(self.rot) * dist)
+        self.translate(dir(self.rot) * dist)
 
     def rotate(self, rad: float):
         """

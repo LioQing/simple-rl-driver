@@ -8,7 +8,7 @@ import pygame
 
 import engine.bezier_curve as bc
 from engine.entity.camera import Camera
-from engine.utils import vec2d
+from engine.utils import vec
 
 
 class Track:
@@ -41,7 +41,20 @@ class Track:
 
         pco = pyclipper.PyclipperOffset()
         pco.AddPath(self.polyline, pyclipper.JT_ROUND, pyclipper.ET_OPENROUND)
-        self.polygon = [vec2d(*p) for p in pco.Execute(self.width)[0]]
+        self.polygon = [vec(*p) for p in pco.Execute(self.width)[0]]
+
+    def get_start_dir(self) -> npt.NDArray[np.float32]:
+        """
+        Get the starting direction of the Bézier curve.
+
+        :return: The starting direction
+        """
+        return (
+            0.5**3 * self.curve.pts[0].pos
+            + 3 * 0.5**2 * 0.5 * self.curve.pts[0].control
+            + 3 * 0.5 * 0.5**2 * self.curve.pts[1].opp_control
+            + 0.5**3 * self.curve.pts[1].pos
+        )
 
     @staticmethod
     def load(

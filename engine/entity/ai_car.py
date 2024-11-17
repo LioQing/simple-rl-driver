@@ -7,7 +7,7 @@ from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
 from engine.entity.track import Track
-from engine.utils import unit_vec_at, vec2d
+from engine.utils import clamp, dir, vec
 
 
 class AICar(Car):
@@ -25,10 +25,19 @@ class AICar(Car):
 
     SENSOR_DIST = 500
 
+    @property
+    def fitness(self) -> float:
+        """
+        Get the fitness of the AI car.
+
+        :return: The fitness of the AI car
+        """
+        return self.progress / self.total_progress
+
     def __init__(self, sensor_rots: npt.NDArray[np.float32]):
         super().__init__()
         self.nn = CarNN()
-        self.outputs = vec2d(0, 0)
+        self.outputs = vec(0, 0)
         self.sensor_rots = sensor_rots
 
         self.forward = 0
@@ -64,9 +73,7 @@ class AICar(Car):
         self_pos = Point(self.pos)
         track_edges = LinearRing(track.polygon)
         for i, rot in enumerate(self.sensor_rots + self.rot):
-            sensor_end = Point(
-                self.pos + (unit_vec_at(rot) * self.SENSOR_DIST)
-            )
+            sensor_end = Point(self.pos + (dir(rot) * self.SENSOR_DIST))
 
             intersection = track_edges.intersection(
                 LineString([self_pos, sensor_end])
@@ -97,7 +104,7 @@ class AICar(Car):
 
         # Draw sensors lines
         for i, rot in enumerate(self.sensor_rots + self.rot):
-            sensor_end = self.pos + (unit_vec_at(rot) * self.sensors[i])
+            sensor_end = self.pos + (dir(rot) * self.sensors[i])
             pygame.draw.line(
                 screen,
                 pygame.Color(255, 0, 0),
@@ -105,23 +112,17 @@ class AICar(Car):
                 camera.get_coord(sensor_end),
             )
 
-    def get_fitness(self) -> float:
-        """
-        Get the fitness of the AI car.
-
-        :return: The fitness of the AI car
-        """
-        return self.progress / self.total_progress
-
     def _get_input(self) -> Car.Input:
-        self.outputs = self.nn.activate(
-            self.sensors / self.SENSOR_DIST,
+        inputs = np.concatenate(
+            (
+                self.sensors / self.SENSOR_DIST,
+                [self.speed / self.MAX_SPEED],
+                [self.angular_speed / self.MAX_ANGULAR_SPEED],
+            )
         )
+        self.outputs = self.nn.activate(inputs)
 
-        self.forward = (self.outputs[0] * 2) - 1
-        self.turn = (self.outputs[1] * 2) - 1
-
-        self.forward = max(-1.0, min(1.0, self.forward))
-        self.turn = max(-1.0, min(1.0, self.turn))
+        self.forward = clamp(self.outputs[0], -1.0, 1.0)
+        self.turn = clamp(self.outputs[1], -1.0, 1.0)
 
         return Car.Input(self.forward, self.turn)

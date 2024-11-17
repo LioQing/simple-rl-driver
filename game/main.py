@@ -18,7 +18,7 @@ DESCRIPTION = (
     "  ctrl + q                        quit the program\n"
 )
 
-WEIGHTS_PATH = Path("data/weights")
+NN_PATH = Path("data/nns")
 
 
 def main_scene(args: argparse.Namespace):
@@ -43,33 +43,30 @@ def main_scene(args: argparse.Namespace):
         player_car.reset_state(track)
 
     ai_cars = []
-    if args.weights:
+    if args.nn:
+
+        # Weight
+        nn_file = NN_PATH / f"{args.nn}.txt"
+        if not nn_file.exists():
+            raise FileNotFoundError(f"Weights file {nn_file} does not exist")
+
+        meta, *weights = nn_file.read_text().splitlines()
+        if len(weights) == 0:
+            raise ValueError(f"Weights file {nn_file} is empty")
+
         ai_cars = [
             AICar(
-                np.radians(
-                    np.array(
-                        [-90, -60, -30, 0, 30, 60, 90],
-                        dtype=np.float32,
-                    )
+                np.array(
+                    [float(r) for r in meta.split(",")],
+                    dtype=np.float32,
                 )
             )
             for _ in range(args.ai_count)
         ]
 
-        # Weight
-        weights_file = WEIGHTS_PATH / f"{args.weights}.txt"
-        if not weights_file.exists():
-            raise FileNotFoundError(
-                f"Weights file {weights_file} does not exist"
-            )
-
-        weights = weights_file.read_text().splitlines()
-        if len(weights) == 0:
-            raise ValueError(f"Weights file {weights_file} is empty")
-
         for i, car in enumerate(ai_cars):
             car.reset_state(track)
-            car.nn.from_string(weights[i % len(weights)])
+            car.nn.from_str(weights[i % len(weights)])
             if i > len(weights):
                 car.nn.mutate(0.01)
 
@@ -116,7 +113,7 @@ def main_scene(args: argparse.Namespace):
         camera.update(
             fixed_dt,
             (
-                max(ai_cars, key=lambda x: x.get_fitness())
+                max(ai_cars, key=lambda x: x.fitness)
                 if args.follow_ai
                 else None
             ),
@@ -157,7 +154,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--resolution",
-        "-r",
         dest="resolution",
         type=Tuple[int, int],
         help="The resolution of the track",
@@ -165,21 +161,19 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--fullscreen",
-        "-f",
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",
     )
     parser.add_argument(
-        "--weights",
-        "-w",
-        dest="weights",
+        "--neural-network",
+        "-n",
+        dest="nn",
         type=str,
-        help="The weights file to use for the AI",
+        help="The neural network file to use for the AI",
     )
     parser.add_argument(
         "--follow-ai",
-        "-n",
         dest="follow_ai",
         action="store_true",
         help="Whether to follow the AI car and disable player car",

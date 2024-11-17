@@ -15,7 +15,7 @@ class CarNN:
     weights: List[np.ndarray]
     layer_sizes: List[int]
 
-    LAYER_SIZES = (7, 5, 5, 2)
+    LAYER_SIZES = (9, 8, 8, 4)
 
     def __init__(self):
         self.prev_fitness = None
@@ -44,6 +44,9 @@ class CarNN:
         def relu(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
             return np.maximum(0, x)
 
+        def leaky_relu(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+            return np.maximum(0.01 * x, x)
+
         if len(inputs) != self.LAYER_SIZES[0]:
             raise ValueError(
                 f"Expected {self.LAYER_SIZES[0]} inputs, got {len(inputs)}"
@@ -51,10 +54,10 @@ class CarNN:
 
         layer = np.concatenate((inputs, [1.0]))
 
-        for weight in self.weights:
+        for weight in self.weights[:-1]:
             layer = np.concatenate((relu(np.dot(layer, weight)), [1.0]))
 
-        return layer
+        return np.dot(layer, self.weights[-1])
 
     def mutate(
         self,
@@ -104,7 +107,7 @@ class CarNN:
     def __str__(self) -> str:
         return "@".join(json.dumps(weight.tolist()) for weight in self.weights)
 
-    def from_string(self, string: str):
+    def from_str(self, string: str):
         """
         Load the neural network from a string.
 

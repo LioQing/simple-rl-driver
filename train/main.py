@@ -1,4 +1,6 @@
 import argparse
+import math
+import random
 from copy import deepcopy
 from pathlib import Path
 from typing import Tuple
@@ -15,11 +17,11 @@ DESCRIPTION = (
     "\n"
     "controls:\n"
     "  ctrl + q                        quit the program\n"
-    "  ctrl + s                        save the weights\n"
+    "  ctrl + s                        save the neural network\n"
     "     enter                        manually trigger next iteration\n"
 )
 
-WEIGHTS_PATH = Path("data/weights")
+NN_DIR = Path("data/nns")
 
 
 def main_scene(args: argparse.Namespace):
@@ -37,47 +39,43 @@ def main_scene(args: argparse.Namespace):
     )
 
     # Setup
-    track = Track.load(args.track)
+    tracks = [Track.load(t) for t in args.tracks]
+    track = random.choice(tracks)
     camera = Camera(screen)
-    ai_cars = [
-        AICar(
-            np.radians(
-                np.array(
-                    [-90, -60, -30, 0, 30, 60, 90],
-                    dtype=np.float32,
-                )
+
+    nn_file = NN_DIR / f"{args.nn}.txt"
+    if not nn_file.exists():
+        weights = []
+        sensor_rots = [math.radians(r) for r in args.sensor_rots]
+        if sensor_rots is None:
+            raise ValueError(
+                "Sensor rotations (option -s) are required if no neural"
+                " network file"
             )
-        )
+    else:
+        meta, *weights = nn_file.read_text().splitlines()
+        sensor_rots = [float(r) for r in meta.split(",")]
+
+    ai_cars = [
+        AICar(np.array(sensor_rots, dtype=np.float32))
         for _ in range(args.ai_count)
     ]
 
-    # Weight
-    weights_exist = True
-    weights_file = WEIGHTS_PATH / f"{args.weights}.txt"
-    if not weights_file.exists():
-        weights_file.touch()
-        weights_exist = False
-
-    weights = weights_file.read_text().splitlines()
-
-    if not weights:
-        weights_exist = False
-
     for i, car in enumerate(ai_cars):
         car.reset_state(track)
-        if weights_exist:
-            car.nn.from_string(weights[i % len(weights)])
+        if weights:
+            car.nn.from_str(weights[i % len(weights)])
             if i > len(weights):
                 car.nn.mutate(0.01)
 
     # Next iteration function for the AI
     def next_iteration():
         select_count = 2
-        ai_cars.sort(key=lambda x: x.get_fitness(), reverse=True)
+        ai_cars.sort(key=lambda x: x.fitness, reverse=True)
 
         for i in range(select_count, len(ai_cars)):
             ai_cars[i].nn = deepcopy(ai_cars[i % select_count].nn)
-            ai_cars[i].nn.mutate(0.2, 0.5, ai_cars[i].get_fitness())
+            ai_cars[i].nn.mutate(0.2, 0.5, ai_cars[i].fitness)
 
         for car in ai_cars:
             car.reset_state(track)
@@ -101,14 +99,19 @@ def main_scene(args: argparse.Namespace):
                     pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_s
                 ):
-                    weights_file.write_text(
-                        "\n".join(str(car.nn) for car in ai_cars)
+                    nn_file.touch()
+                    nn_file.write_text(
+                        ",".join(str(rot) for rot in ai_cars[0].sensor_rots)
+                        + "\n"
+                        + "\n".join(str(car.nn) for car in ai_cars)
                     )
                 if event.key == pygame.K_RETURN:
+                    track = random.choice(tracks)
                     next_iteration()
 
         # If all cars out of track then next iteration
         if all(car.out_of_track for car in ai_cars):
+            track = random.choice(tracks)
             next_iteration()
 
         # Update
@@ -116,7 +119,8 @@ def main_scene(args: argparse.Namespace):
             if not car.out_of_track:
                 car.update(fixed_dt, track)
 
-        camera.update(fixed_dt, max(ai_cars, key=lambda x: x.get_fitness()))
+        ai_cars = sorted(ai_cars, key=lambda x: x.fitness, reverse=True)
+        camera.update(fixed_dt, ai_cars[0])
 
         # Skip frames
         skip_frame_counter += 1
@@ -148,18 +152,20 @@ def configure_parser(parser: argparse.ArgumentParser):
     """
     parser.add_argument(
         "--track",
+        "--tracks",
         "-t",
-        dest="track",
+        dest="tracks",
         type=str,
-        help="The name of the track to play in",
+        nargs="+",
+        help="The name of the track(s) to train in",
         required=True,
     )
     parser.add_argument(
-        "--weights",
-        "-w",
-        dest="weights",
+        "--neural-network",
+        "-n",
+        dest="nn",
         type=str,
-        help="The weights file to use for the AI",
+        help="The neural network file to use for the AI",
         required=True,
     )
     parser.add_argument(
@@ -171,7 +177,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--skip-frames",
-        "-s",
         dest="skip_frames",
         type=int,
         help=(
@@ -182,7 +187,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--resolution",
-        "-r",
         dest="resolution",
         type=Tuple[int, int],
         help="The resolution of the track",
@@ -190,7 +194,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--fullscreen",
-        "-f",
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",
@@ -202,6 +205,18 @@ def configure_parser(parser: argparse.ArgumentParser):
         type=int,
         help="The number of AI cars to use",
         default=10,
+    )
+    parser.add_argument(
+        "--sensor-rots",
+        "--sensor-rot",
+        "-s",
+        dest="sensor_rots",
+        type=float,
+        nargs="+",
+        help=(
+            "The sensor rotations for the AI cars, in degrees, space"
+            " separated, it is required if no neural network file is specified"
+        ),
     )
 
 

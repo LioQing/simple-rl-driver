@@ -3,6 +3,7 @@ from typing import Tuple
 
 import pygame
 
+from engine.entity.track import Track
 from track.editor import TrackEditor
 
 DESCRIPTION = (
@@ -65,7 +66,11 @@ def main_scene(args: argparse.Namespace):
 
         # Render
         screen.fill((255, 255, 255))
-        editor.draw(screen, pygame.Color(0, 0, 0), 3)
+        editor.draw(
+            screen,
+            pygame.Color(0, 0, 0),
+            int(Track.DEFAULT_WIDTH / Track.DEFAULT_SCALE),
+        )
 
         pygame.display.update()
 
@@ -91,7 +96,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--resolution",
-        "-r",
         dest="resolution",
         type=Tuple[int, int],
         help="The resolution of the track",
@@ -99,7 +103,6 @@ def configure_parser(parser: argparse.ArgumentParser):
     )
     parser.add_argument(
         "--fullscreen",
-        "-f",
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",

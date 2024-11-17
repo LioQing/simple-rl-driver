@@ -5,7 +5,7 @@ import numpy.typing as npt
 import pygame
 
 from engine.entity.transformable import Transformable
-from engine.utils import lerp, rot_mat, vec2d
+from engine.utils import lerp, rot_mat, vec
 
 
 class Camera(Transformable):
@@ -36,7 +36,7 @@ class Camera(Transformable):
 
         rot_pos = np.dot(rot_mat(-self.rot), local_pos)
 
-        center = vec2d(*self.screen.get_rect().center)
+        center = vec(*self.screen.get_rect().center)
 
         return center + rot_pos
 
