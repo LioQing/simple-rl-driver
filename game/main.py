@@ -67,15 +67,14 @@ def main_scene(args: argparse.Namespace):
         sensor_rots, weights = load_nn(args)
 
         ai_cars = [
-            AICar(np.array(sensor_rots, dtype=np.float32))
-            for _ in range(args.ai_count)
+            AICar(
+                track,
+                np.array(sensor_rots, dtype=np.float32),
+                weights=weights[i % len(weights)],
+                init_mutate_noise=args.init_mutate_noise,
+            )
+            for i in range(args.ai_count)
         ]
-
-        for i, car in enumerate(ai_cars):
-            car.reset_state(track)
-            car.nn.from_str(weights[i % len(weights)])
-            if i > len(weights):
-                car.nn.mutate(args.init_mutate_noise)
 
     camera = Camera(screen, player_car)
 
@@ -160,30 +159,11 @@ def configure_parser(parser: argparse.ArgumentParser):
         required=True,
     )
     parser.add_argument(
-        "--resolution",
-        dest="resolution",
-        type=Tuple[int, int],
-        help="The resolution of the track",
-        default=(800, 640),
-    )
-    parser.add_argument(
-        "--fullscreen",
-        dest="fullscreen",
-        action="store_true",
-        help="Whether to run in fullscreen mode",
-    )
-    parser.add_argument(
         "--neural-network",
         "-n",
         dest="nn",
         type=str,
         help="The neural network file to use for the AI",
-    )
-    parser.add_argument(
-        "--follow-ai",
-        dest="follow_ai",
-        action="store_true",
-        help="Whether to follow the AI car and disable player car",
     )
     parser.add_argument(
         "--ai-count",
@@ -200,6 +180,25 @@ def configure_parser(parser: argparse.ArgumentParser):
         type=float,
         help="The initial mutation noise (scale of Gaussian distribution)",
         default=0.01,
+    )
+    parser.add_argument(
+        "--follow-ai",
+        dest="follow_ai",
+        action="store_true",
+        help="Whether to follow the AI car and disable player car",
+    )
+    parser.add_argument(
+        "--resolution",
+        dest="resolution",
+        type=tuple[int, int],
+        help="The resolution of the track",
+        default=(800, 640),
+    )
+    parser.add_argument(
+        "--fullscreen",
+        dest="fullscreen",
+        action="store_true",
+        help="Whether to run in fullscreen mode",
     )
 
 

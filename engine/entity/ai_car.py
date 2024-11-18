@@ -1,8 +1,11 @@
+from typing import List, Optional
+
 import numpy as np
 import numpy.typing as npt
 import pygame
 import shapely
 
+from engine.activations import ActivationFunc
 from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
@@ -34,9 +37,34 @@ class AICar(Car):
         """
         return self.progress / self.total_progress
 
-    def __init__(self, sensor_rots: npt.NDArray[np.float32]):
-        super().__init__()
-        self.nn = CarNN()
+    def __init__(
+        self,
+        track: Track,
+        sensor_rots: npt.NDArray[np.float32],
+        activation: ActivationFunc,
+        weights: Optional[str] = None,
+        init_mutate_noise: float = 0.0,
+        hidden_layer_sizes: Optional[List[int]] = None,
+    ):
+        super().__init__(track)
+
+        if not weights and not hidden_layer_sizes:
+            raise ValueError(
+                "Either weights or hidden_layer_sizes must be provided"
+            )
+
+        self.nn = (
+            CarNN(
+                activation=activation,
+                layer_sizes=[len(sensor_rots) + 2, *hidden_layer_sizes, 2],
+            )
+            if not weights
+            else CarNN.deserialize(
+                activation=activation,
+                string=weights,
+                init_mutate_noise=init_mutate_noise,
+            )
+        )
         self.outputs = vec(0, 0)
         self.sensor_rots = sensor_rots
 
@@ -46,6 +74,8 @@ class AICar(Car):
             [self.SENSOR_DIST] * len(self.sensor_rots), dtype=np.float32
         )
         self.out_of_track = False
+
+        self.reset_state(track)
 
     def reset_state(self, track: Track):
         """

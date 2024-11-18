@@ -1,5 +1,4 @@
 import argparse
-from typing import Tuple
 
 import pygame
 
@@ -10,9 +9,9 @@ DESCRIPTION = (
     "Track editor mode.\n"
     "\n"
     "controls:\n"
-    "  press left click                add a point\n"
-    "  hold and drag                   edit the curve\n"
-    "  release left click              start editing next point\n"
+    "  press left mouse button         add a point\n"
+    "  hold and drag left mouse button edit the curve\n"
+    "  release left mouse button       start editing next point\n"
     "  ctrl + s                        save the track\n"
     "  ctrl + z, del, backspace, esc   undo\n"
     "  ctrl + q                        quit the program\n"
@@ -97,7 +96,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--resolution",
         dest="resolution",
-        type=Tuple[int, int],
+        type=tuple[int, int],
         help="The resolution of the track",
         default=(800, 640),
     )

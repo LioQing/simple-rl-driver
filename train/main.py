@@ -3,11 +3,12 @@ import math
 import random
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pygame
 
+from engine.activations import activation_funcs
 from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
 from engine.entity.track import Track
@@ -16,34 +17,40 @@ DESCRIPTION = (
     "Training mode.\n"
     "\n"
     "controls:\n"
-    "  ctrl + q                        quit the program\n"
-    "  ctrl + s                        save the neural network\n"
     "     enter                        manually trigger next iteration\n"
+    "  ctrl + s                        save the neural network\n"
+    "  ctrl + q                        quit the program\n"
 )
 
 NN_DIR = Path("data/nns")
 
 
-def load_nn(args: argparse.Namespace) -> Tuple[List[float], List[str]]:
+def load_nn(
+    args: argparse.Namespace,
+) -> Tuple[List[float], Optional[List[str]], Optional[List[int]], str]:
     """
-    Load the neural network from the file
+    Load the neural network from the file.
+    When the file exists, it returns the sensor rotations, weights, activation,
+    otherwise it returns the sensor rotations, hidden layer sizes, activation.
 
     :param args: The arguments
-    :return: The sensor rotations and the weights
+    :return: The sensor rotations, the weights, and the hidden layer sizes
     """
     nn_file = NN_DIR / f"{args.nn}.txt"
     if not nn_file.exists():
-        sensor_rots = [math.radians(r) for r in args.sensor_rots]
-        if sensor_rots is None:
+        if args.sensor_rots is None or args.hidden_layer_sizes is None:
             raise ValueError(
-                "Sensor rotations (option -s) are required if no neural"
-                " network file"
+                "Sensor rotations (--sensor-rot/-s) and hidden layer sizes"
+                " (option --hidden-layer-sizes/-z) must be provided when the"
+                " neural network file does not exist"
             )
-        return sensor_rots, []
+        sensor_rots = [math.radians(r) for r in args.sensor_rots]
+        return sensor_rots, None, args.hidden_layer_sizes, args.activation
     else:
         meta, *weights = nn_file.read_text().splitlines()
-        sensor_rots = [float(r) for r in meta.split(",")]
-        return sensor_rots, weights
+        sensor_rots_str, activation = meta.split(";")
+        sensor_rots = [float(r) for r in sensor_rots_str.split(",")]
+        return sensor_rots, weights, None, activation
 
 
 def save_nn(args: argparse.Namespace, ai_cars: List[AICar]):
@@ -56,13 +63,13 @@ def save_nn(args: argparse.Namespace, ai_cars: List[AICar]):
     """
     nn_file = NN_DIR / f"{args.nn}.txt"
     nn_file.touch()
-    nn_file.write_text(
-        ",".join(str(rot) for rot in ai_cars[0].sensor_rots)
-        + "\n"
-        + "\n".join(
-            str(car.nn) for car in ai_cars[: args.save_count or len(ai_cars)]
-        )
+
+    sensor_rots = ",".join(str(rot) for rot in ai_cars[0].sensor_rots)
+    weights = "\n".join(
+        car.nn.serialize()
+        for car in ai_cars[: args.save_quota or len(ai_cars)]
     )
+    nn_file.write_text(f"{sensor_rots};{args.activation}\n{weights}")
 
 
 def main_scene(args: argparse.Namespace):
@@ -84,18 +91,19 @@ def main_scene(args: argparse.Namespace):
     track = random.choice(tracks)
     camera = Camera(screen)
 
-    sensor_rots, weights = load_nn(args)
+    sensor_rots, weights, hidden_layer_sizes, activation = load_nn(args)
 
     ai_cars = [
-        AICar(np.array(sensor_rots, dtype=np.float32))
-        for _ in range(args.ai_count)
+        AICar(
+            track,
+            sensor_rots=np.array(sensor_rots, dtype=np.float32),
+            activation=activation_funcs[activation],
+            weights=weights[i % len(weights)] if weights else None,
+            init_mutate_noise=args.init_mutate_noise,
+            hidden_layer_sizes=hidden_layer_sizes,
+        )
+        for i in range(args.ai_count)
     ]
-
-    for i, car in enumerate(ai_cars):
-        car.reset_state(track)
-        car.nn.from_str(weights[i % len(weights)])
-        if i > len(weights):
-            car.nn.mutate(args.init_mutate_noise)
 
     # Next iteration function for the AI
     def next_iter():
@@ -105,7 +113,7 @@ def main_scene(args: argparse.Namespace):
             ai_cars[i].nn = deepcopy(ai_cars[i % args.select_count].nn)
             ai_cars[i].nn.mutate(
                 args.mutate_noise,
-                args.mutate_learning_rate,
+                args.mutate_learn_rate,
                 ai_cars[i].fitness,
             )
 
@@ -196,10 +204,88 @@ def configure_parser(parser: argparse.ArgumentParser):
         required=True,
     )
     parser.add_argument(
-        "--save-count",
-        dest="save_count",
+        "--sensor-rots",
+        "--sensor-rot",
+        "-s",
+        dest="sensor_rots",
+        type=float,
+        nargs="+",
+        help=(
+            "The sensor rotations for the AI cars, in degrees, space"
+            " separated. Required if neural network file is not found, it will"
+            " be used to create a new neural network"
+        ),
+    )
+    parser.add_argument(
+        "--hidden-layer-sizes",
+        "-z",
+        dest="hidden_layer_sizes",
         type=int,
-        help="The number of top AI cars to save into the neural network file",
+        nargs="+",
+        help=(
+            "The hidden layer sizes for the neural network. Required if neural"
+            " network file is not found, it will be used to create a new"
+            " neural network"
+        ),
+    )
+    parser.add_argument(
+        "--activation-function",
+        "-f",
+        dest="activation",
+        type=str,
+        choices=["sigmoid", "relu", "leaky_relu"],
+        help="The activation function for the neural network",
+        default="leaky_relu",
+    )
+    parser.add_argument(
+        "--save-quota",
+        "-q",
+        dest="save_quota",
+        type=int,
+        help=(
+            "The number of quota of top AI cars to save into the neural"
+            " network file"
+        ),
+    )
+    parser.add_argument(
+        "--ai-count",
+        "-a",
+        dest="ai_count",
+        type=int,
+        help="The number of AI cars to use",
+        default=10,
+    )
+    parser.add_argument(
+        "--select-count",
+        "-c",
+        dest="select_count",
+        type=int,
+        help="The number of top AI cars to select for next iteration",
+        default=3,
+    )
+    parser.add_argument(
+        "--init-mutate-noise",
+        "-i",
+        dest="init_mutate_noise",
+        type=float,
+        help="The initial mutation noise (scale of Gaussian distribution)",
+        default=0.01,
+    )
+    parser.add_argument(
+        "--mutate-noise",
+        "-m",
+        dest="mutate_noise",
+        type=float,
+        help="The mutation noise (scale of Gaussian distribution)",
+        default=0.2,
+    )
+    parser.add_argument(
+        "--mutate-learn-rate",
+        "-l",
+        dest="mutate_learn_rate",
+        type=float,
+        help="The mutation learn rate (magnitude of gradient descent)",
+        default=0.5,
     )
     parser.add_argument(
         "--limit-fps",
@@ -220,7 +306,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--resolution",
         dest="resolution",
-        type=Tuple[int, int],
+        type=tuple[int, int],
         help="The resolution of the track",
         default=(800, 640),
     )
@@ -229,58 +315,6 @@ def configure_parser(parser: argparse.ArgumentParser):
         dest="fullscreen",
         action="store_true",
         help="Whether to run in fullscreen mode",
-    )
-    parser.add_argument(
-        "--ai-count",
-        "-a",
-        dest="ai_count",
-        type=int,
-        help="The number of AI cars to use",
-        default=10,
-    )
-    parser.add_argument(
-        "--sensor-rots",
-        "--sensor-rot",
-        "-s",
-        dest="sensor_rots",
-        type=float,
-        nargs="+",
-        help=(
-            "The sensor rotations for the AI cars, in degrees, space"
-            " separated, it is required if no neural network file is specified"
-        ),
-    )
-    parser.add_argument(
-        "--init-mutate-noise",
-        "-i",
-        dest="init_mutate_noise",
-        type=float,
-        help="The initial mutation noise (scale of Gaussian distribution)",
-        default=0.01,
-    )
-    parser.add_argument(
-        "--mutate-noise",
-        "-m",
-        dest="mutate_noise",
-        type=float,
-        help="The mutation noise (scale of Gaussian distribution)",
-        default=0.2,
-    )
-    parser.add_argument(
-        "--mutate-learning-rate",
-        "-l",
-        dest="mutate_learning_rate",
-        type=float,
-        help="The mutation learning rate (magnitude of gradient descent)",
-        default=0.5,
-    )
-    parser.add_argument(
-        "--select-count",
-        "-c",
-        dest="select_count",
-        type=int,
-        help="The number of top AI cars to select for next iteration",
-        default=3,
     )
 
 

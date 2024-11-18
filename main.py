@@ -22,7 +22,7 @@ def configure_parser(parser: argparse.ArgumentParser):
     # Add game parser
     game_parser = subparsers.add_parser(
         "game",
-        help="Run in game mode",
+        help="Run in gameplay mode",
     )
     game.main.configure_parser(game_parser)
 
