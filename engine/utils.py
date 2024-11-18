@@ -5,18 +5,6 @@ import numpy as np
 import numpy.typing as npt
 
 
-def lerp(a: Any, b: Any, t: Any) -> Any:
-    """
-    Linear interpolation between a and b by t.
-
-    :param a: The start value.
-    :param b: The end value.
-    :param t: The interpolation value.
-    :return: The interpolated value.
-    """
-    return a + (b - a) * t
-
-
 def rot_mat(rot: float) -> npt.NDArray[np.float32]:
     """
     Get the rotation matrix for the given rotation.

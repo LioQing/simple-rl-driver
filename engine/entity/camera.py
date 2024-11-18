@@ -5,7 +5,7 @@ import numpy.typing as npt
 import pygame
 
 from engine.entity.transformable import Transformable
-from engine.utils import lerp, rot_mat, vec
+from engine.utils import rot_mat, vec
 
 
 class Camera(Transformable):
@@ -50,8 +50,6 @@ class Camera(Transformable):
         """
         if follow:
             self.follow = follow
-            self.pos = lerp(self.pos, self.follow.pos, 0.5)
-        else:
-            self.pos = self.follow.pos
 
+        self.pos = self.follow.pos
         self.rot = self.follow.rot

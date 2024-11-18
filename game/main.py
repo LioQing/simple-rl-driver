@@ -1,6 +1,6 @@
 import argparse
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 import pygame
@@ -19,6 +19,26 @@ DESCRIPTION = (
 )
 
 NN_PATH = Path("data/nns")
+
+
+def load_nn(args: argparse.Namespace) -> Tuple[List[float], List[str]]:
+    """
+    Load the neural network from the file
+
+    :param args: The arguments
+    :return: The sensor rotations and the weights
+    """
+    nn_file = NN_PATH / f"{args.nn}.txt"
+    if not nn_file.exists():
+        raise FileNotFoundError(f"Weights file {nn_file} does not exist")
+
+    meta, *weights = nn_file.read_text().splitlines()
+    if len(weights) == 0:
+        raise ValueError(f"Weights file {nn_file} is empty")
+
+    sensor_rots = [float(r) for r in meta.split(",")]
+
+    return sensor_rots, weights
 
 
 def main_scene(args: argparse.Namespace):
@@ -44,23 +64,10 @@ def main_scene(args: argparse.Namespace):
 
     ai_cars = []
     if args.nn:
-
-        # Weight
-        nn_file = NN_PATH / f"{args.nn}.txt"
-        if not nn_file.exists():
-            raise FileNotFoundError(f"Weights file {nn_file} does not exist")
-
-        meta, *weights = nn_file.read_text().splitlines()
-        if len(weights) == 0:
-            raise ValueError(f"Weights file {nn_file} is empty")
+        sensor_rots, weights = load_nn(args)
 
         ai_cars = [
-            AICar(
-                np.array(
-                    [float(r) for r in meta.split(",")],
-                    dtype=np.float32,
-                )
-            )
+            AICar(np.array(sensor_rots, dtype=np.float32))
             for _ in range(args.ai_count)
         ]
 
@@ -68,7 +75,7 @@ def main_scene(args: argparse.Namespace):
             car.reset_state(track)
             car.nn.from_str(weights[i % len(weights)])
             if i > len(weights):
-                car.nn.mutate(0.01)
+                car.nn.mutate(args.init_mutate_noise)
 
     camera = Camera(screen, player_car)
 
@@ -185,6 +192,14 @@ def configure_parser(parser: argparse.ArgumentParser):
         type=int,
         help="The number of AI cars to use",
         default=10,
+    )
+    parser.add_argument(
+        "--init-mutate-noise",
+        "-i",
+        dest="init_mutate_noise",
+        type=float,
+        help="The initial mutation noise (scale of Gaussian distribution)",
+        default=0.01,
     )
 
 
