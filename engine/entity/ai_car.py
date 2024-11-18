@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 import pygame
-from shapely import LinearRing, LineString, Point
+import shapely
 
 from engine.car_nn import CarNN
 from engine.entity.camera import Camera
@@ -69,20 +69,27 @@ class AICar(Car):
         :return: None
         """
         # Update sensors
-        self.sensors.fill(self.SENSOR_DIST)
-        self_pos = Point(self.pos)
-        track_edges = LinearRing(track.polygon)
-        for i, rot in enumerate(self.sensor_rots + self.rot):
-            sensor_end = Point(self.pos + (dir(rot) * self.SENSOR_DIST))
-
-            intersection = track_edges.intersection(
-                LineString([self_pos, sensor_end])
-            )
-
-            if intersection.is_empty:
-                continue
-
-            self.sensors[i] = intersection.distance(self_pos)
+        self.sensors = np.array(
+            [
+                (
+                    shapely.points(self.pos).distance(intersection)
+                    if not intersection.is_empty
+                    else self.SENSOR_DIST
+                )
+                for intersection in (
+                    track.shapely_linear_ring.intersection(
+                        shapely.linestrings(
+                            [
+                                self.pos,
+                                self.pos + (dir(rot) * self.SENSOR_DIST),
+                            ]
+                        )
+                    )
+                    for rot in self.sensor_rots + self.rot
+                )
+            ],
+            dtype=np.float32,
+        )
 
         super().update(dt, track)
 

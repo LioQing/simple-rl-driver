@@ -5,6 +5,7 @@ import numpy as np
 import numpy.typing as npt
 import pyclipper
 import pygame
+import shapely
 
 import engine.bezier_curve as bc
 from engine.entity.camera import Camera
@@ -21,6 +22,10 @@ class Track:
     polyline_factor: float
     polyline: List[npt.NDArray[np.float32]]
     polygon: List[npt.NDArray[np.float32]]
+
+    # Shapely objects for memoization
+    shapely_linear_ring: shapely.LinearRing
+    shapely_polygon: shapely.Polygon
 
     DEFAULT_POLYLINE_FACTOR = 0.05
     DEFAULT_DIRECTORY = Path("data/tracks")
@@ -42,6 +47,9 @@ class Track:
         pco = pyclipper.PyclipperOffset()
         pco.AddPath(self.polyline, pyclipper.JT_ROUND, pyclipper.ET_OPENROUND)
         self.polygon = [vec(*p) for p in pco.Execute(self.width)[0]]
+
+        self.shapely_linear_ring = shapely.LinearRing(self.polygon)
+        self.shapely_polygon = shapely.Polygon(self.polygon)
 
     def get_start_dir(self) -> npt.NDArray[np.float32]:
         """

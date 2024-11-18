@@ -5,8 +5,7 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import pygame
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
+import shapely
 
 from engine.entity.camera import Camera
 from engine.entity.track import Track
@@ -39,7 +38,7 @@ class Car(Transformable):
     ACCELERATION = 3000
     ANGULAR_ACCELERATION = 50 * math.pi
 
-    DECELERATION = 2000
+    DECELERATION = 6000
     ANGULAR_DECELERATION = 100 * math.pi
 
     MAX_SPEED = 300
@@ -138,8 +137,8 @@ class Car(Transformable):
             else:
                 self.angular_speed -= dangular_speed
 
-        self.out_of_track = not Polygon(track.polygon).contains(
-            Point(self.pos)
+        self.out_of_track = not track.shapely_polygon.contains(
+            shapely.points(self.pos)
         )
 
         if self.out_of_track:
@@ -153,9 +152,8 @@ class Car(Transformable):
         self.rotate(self.angular_speed * dt)
 
         # Progress
-        check_point_idx = self.progress + 1
-        if check_point_idx < len(track.polyline):
-            check_point = track.polyline[check_point_idx]
+        if self.progress + 1 < len(track.polyline):
+            check_point = track.polyline[self.progress + 1]
             if (
                 np.linalg.norm(check_point - self.pos)
                 < track.width + self.HEIGHT
