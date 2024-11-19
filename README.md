@@ -1,6 +1,48 @@
-# Python Template
+# Simple RL Driver
 
-This is a template for Python projects.
+A reinforcement learning project for training AI cars to drive on tracks.
+
+## Table of Contents
+
+- [Overview](#overview)
+    - [Libraries](#libraries)
+    - [Features](#features)
+- [Usage](#usage)
+    - [Track Editor Mode](#track-editor-mode)
+    - [Training Mode](#training-mode)
+    - [Gameplay Mode](#gameplay-mode)
+- [Environment Setup](#environment-setup)
+    - [Python](#python)
+    - [Virtual Environment](#virtual-environment)
+    - [Lint and Pre-commit](#lint-and-pre-commit)
+    - [VS Code Settings](#vs-code-settings)
+- [Development](#development)
+    - [Clone Repository](#clone-repository)
+    - [Checkout Branch](#checkout-branch)
+    - [Committing Changes](#committing-changes)
+    - [Pushing Changes](#pushing-changes)
+
+## Overview
+
+This project try to be as simple as possible, using only basic libraries and tools to demonstrate the concept and mathematical foundation of reinforcement learning.
+
+### Libraries
+
+- [NumPy](https://numpy.org): For numerical operations and linear algebra.
+- [Pygame](https://www.pygame.org): For game development.
+- [Shapely](https://shapely.readthedocs.io): For geometric operations, specifically ray casting and collision detection.
+
+### Features
+
+- Track Editor: Create and edit tracks with curves.
+    - Create tracks using Bezier curves, written in Python from scratch.
+    - Save and load tracks from files.
+- Training Mode: Train AI cars to drive on tracks using neural networks and genetic algorithms.
+    - Adjust hyperparameters such as mutation noise, learn rate, and hidden layer sizes.
+    - Save and load neural networks from files.
+    - Visualize weights and biases of the neural network directly on the car.
+- Gameplay Mode: Play the game with the AI cars.
+    - Follow the AI cars or control the player car.
 
 ## Usage
 
@@ -49,7 +91,7 @@ usage: main.py train [-h]
                      --neural-network NN
                      [--sensor-rots SENSOR_ROTS [SENSOR_ROTS ...]]
                      [--hidden-layer-sizes HIDDEN_LAYER_SIZES [HIDDEN_LAYER_SIZES ...]]
-                     [--activation-function {sigmoid,relu,leaky_relu}]
+                     [--activation-function {softmax,sigmoid,relu,leaky_relu}]
                      [--save-quota SAVE_QUOTA]
                      [--ai-count AI_COUNT]
                      [--select-count SELECT_COUNT]
@@ -138,18 +180,18 @@ Options:
 
 ### Python
 
-We use Python \<version>, so make sure you have that installed.
+We use Python 3.9.13, so make sure you have that installed.
 
 You could use [pyenv](https://github.com/pyenv/pyenv) or [pyenv-win](https://github.com/pyenv-win/pyenv-win) (Windows is not recommended to install pyenv because it does not get native support) to manage your Python versions.
 
 Install the Python version you want to use.
 ```bash
-pyenv install <version>
+pyenv install 3.9.13
 ```
 
 Specify the version for this directory.
 ```bash
-pyenv local <version>
+pyenv local 3.9.13
 ```
 
 To check your Python version, run `python --version` in your terminal.
