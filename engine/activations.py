@@ -6,6 +6,17 @@ import numpy.typing as npt
 ActivationFunc = Callable[[npt.NDArray[np.float32]], npt.NDArray[np.float32]]
 
 
+def softmax(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
+    """
+    A softmax activation function.
+
+    :param x: The input
+    :return: The output
+    """
+    exps = np.exp(x - np.max(x))
+    return exps / np.sum(exps)
+
+
 def sigmoid(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
     """
     A sigmoid activation function.
@@ -37,6 +48,7 @@ def leaky_relu(x: npt.NDArray[np.float32]) -> npt.NDArray[np.float32]:
 
 
 activation_funcs = {
+    "softmax": softmax,
     "sigmoid": sigmoid,
     "relu": relu,
     "leaky_relu": leaky_relu,

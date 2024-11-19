@@ -10,6 +10,7 @@ import pygame
 
 from engine.activations import activation_funcs
 from engine.entity.ai_car import AICar
+from engine.entity.ai_colored_gene_car import AIColoredGeneCar
 from engine.entity.camera import Camera
 from engine.entity.track import Track
 
@@ -32,21 +33,23 @@ def load_nn(
     Optional[List[str]],
     Optional[List[int]],
     str,
-    Tuple[int, int, int],
+    List[int],
 ]:
     """
     Load the neural network from the file.
 
-    | Return value | NN loaded | NN not found |
-    | :---: | :---: | :---: |
-    | Sensor rotations | Yes | Yes |
-    | Weights | Yes | No |
-    | Hidden layer sizes | No | Yes |
-    | Activation | Yes | Yes |
-    | Color | Yes | Yes |
+    ```
+    | Return value       | NN loaded | NN not found |
+    | ------------------ | --------- | ------------ |
+    | Sensor rotations   | Yes       | Yes          |
+    | Weights            | Yes       | No           |
+    | Hidden layer sizes | No        | Yes          |
+    | Activation         | Yes       | Yes          |
+    | Color              | Yes       | Yes          |
+    ```
 
     :param args: The arguments
-    :return: The sensor rotations, the weights, and the hidden layer sizes
+    :return: The return values
     """
     nn_file = NN_DIR / f"{args.nn}.txt"
     if not nn_file.exists():
@@ -115,9 +118,10 @@ def main_scene(args: argparse.Namespace):
     camera = Camera(screen)
 
     sensor_rots, weights, hidden_layer_sizes, activation, color = load_nn(args)
+    ai_car_cls = AIColoredGeneCar if args.color_gene else AICar
 
     ai_cars = [
-        AICar(
+        ai_car_cls(
             track,
             sensor_rots=np.array(sensor_rots, dtype=np.float32),
             activation=activation_funcs[activation],
@@ -188,7 +192,7 @@ def main_scene(args: argparse.Namespace):
         skip_frame_counter = 0
 
         # Render
-        screen.fill((255, 255, 255))
+        screen.fill(pygame.Color(255, 255, 255))
 
         track.draw(screen, camera, 5)
         for car in ai_cars:
@@ -257,7 +261,7 @@ def configure_parser(parser: argparse.ArgumentParser):
         "-f",
         dest="activation",
         type=str,
-        choices=["sigmoid", "relu", "leaky_relu"],
+        choices=activation_funcs.keys(),
         help="The activation function for the neural network",
         default="leaky_relu",
     )
@@ -319,6 +323,13 @@ def configure_parser(parser: argparse.ArgumentParser):
         nargs=3,
         help="The color of the AI car",
         default=(0, 0, 0),
+    )
+    parser.add_argument(
+        "--color-gene",
+        "--colored-gene",
+        dest="color_gene",
+        action="store_true",
+        help="Whether to use colored gene for the AI cars",
     )
     parser.add_argument(
         "--limit-fps",

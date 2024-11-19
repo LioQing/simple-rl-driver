@@ -56,6 +56,8 @@ usage: main.py train [-h]
                      [--init-mutate-noise INIT_MUTATE_NOISE]
                      [--mutate-noise MUTATE_NOISE]
                      [--mutate-learn-rate MUTATE_LEARN_RATE]
+                     [--color COLOR COLOR COLOR]
+                     [--color-gene]
                      [--limit-fps]
                      [--skip-frames SKIP_FRAMES]
                      [--resolution RESOLUTION RESOLUTION]
@@ -79,7 +81,7 @@ Options:
 | `-n` | `--neural-network` | | Yes | `str` | The neural network file to use for the AI. | |  
 | `-s` | `--sensor-rots`, `--sensor-rot` | | No | `list[float]` | The sensor rotations for the AI cars, in degrees, space separated. | Required if neural network file is not found, it will be used to create a new neural network. |  
 | `-z` | `--hidden-layer-sizes` | | No | `list[int]` | The hidden layer sizes for the neural network. | Required if neural network file is not found, it will be used to create a new neural network. |  
-| `-f` | `--activation-function` | `leaky_relu` | No | `str` | The activation function for the neural network. | Must be one of `["sigmoid", "relu", "leaky_relu"]`. |  
+| `-f` | `--activation-function` | `leaky_relu` | No | `str` | The activation function for the neural network. | Must be one of `["softmax", "sigmoid", "relu", "leaky_relu"]`. |  
 | `-q` | `--save-quota` | | No | `int` | The number of quota of top AI cars to save into the neural network file. | |  
 | `-a` | `--ai-count` | `10` | No | `int` | The number of AI cars to use. | |  
 | `-c` | `--select-count` | `3` | No | `int` | The number of top AI cars to select for next iteration. | |  
@@ -87,6 +89,7 @@ Options:
 | `-m` | `--mutate-noise` | `0.2` | No | `float` | The mutation noise (scale of Gaussian distribution). | |  
 | `-l` | `--mutate-learn-rate` | `0.5` | No | `float` | The mutation learn rate (magnitude of gradient descent). | |  
 | `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the AI car. | Only used if neural network file is not found. |  
+| | `--color-gene`, `--colored-gene` | | No | `bool` | Whether to use colored gene for the AI car. | Overrides the color of the AI cars. |  
 | | `--limit-fps` | | No | `bool` | Whether to run with limited 60 fps. | |  
 | | `--skip-frames` | `0` | No | `int` | The number of frames to skip for each update. | Enabling this disables the 60 fps limit. |  
 | | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
@@ -102,8 +105,9 @@ usage: main.py game [-h]
                     [--neural-network NN]
                     [--ai-count AI_COUNT]
                     [--init-mutate-noise INIT_MUTATE_NOISE]
-                    [--follow-ai]
                     [--color COLOR COLOR COLOR]
+                    [--follow-ai]
+                    [--color-gene]
                     [--resolution RESOLUTION RESOLUTION]
                     [--fullscreen]
 ```
@@ -126,6 +130,7 @@ Options:
 | `-i` | `--init-mutate-noise` | `0.01` | No | `float` | The initial mutation noise (scale of Gaussian distribution). | |  
 | `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the player car. | |  
 | | `--follow-ai` | | No | `bool` | Whether to follow the AI car and disable player car. | |  
+| | `--color-gene`, `--colored-gene` | | No | `bool` | Whether to use colored gene for the AI cars. | Overrides the color of the AI cars. |  
 | | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
 | | `--fullscreen` | | No | `bool` | Whether to run in fullscreen mode. | |
 

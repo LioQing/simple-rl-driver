@@ -38,6 +38,21 @@ class AICar(Car):
         """
         return self.progress / self.total_progress
 
+    @property
+    def inputs(self) -> npt.NDArray[np.float32]:
+        """
+        Get the inputs for the neural network.
+
+        :return: The inputs
+        """
+        return np.concatenate(
+            (
+                self.sensors / self.SENSOR_DIST,
+                [self.speed / self.MAX_SPEED],
+                [self.angular_speed / self.MAX_ANGULAR_SPEED],
+            )
+        )
+
     def __init__(
         self,
         track: Track,
@@ -140,12 +155,19 @@ class AICar(Car):
         :param camera: The camera
         :return: None
         """
+        if not self.out_of_track:
+            self.draw_sensor(screen, camera)
+
         super().draw(screen, camera)
 
-        if self.out_of_track:
-            return
+    def draw_sensor(self, screen: pygame.Surface, camera: Camera):
+        """
+        Draw the sensor of the AI car.
 
-        # Draw sensors lines
+        :param screen: The screen to draw on
+        :param camera: The camera
+        :return: None
+        """
         for rot, dist in zip(self.sensor_rots + self.rot, self.sensors):
             sensor_end = self.pos + (dir(rot) * dist)
             pygame.draw.line(
@@ -156,14 +178,7 @@ class AICar(Car):
             )
 
     def _get_input(self) -> Car.Input:
-        inputs = np.concatenate(
-            (
-                self.sensors / self.SENSOR_DIST,
-                [self.speed / self.MAX_SPEED],
-                [self.angular_speed / self.MAX_ANGULAR_SPEED],
-            )
-        )
-        self.outputs = self.nn.activate(inputs)
+        self.outputs = self.nn.activate(self.inputs)
 
         self.forward = clamp(self.outputs[0], -1.0, 1.0)
         self.turn = clamp(self.outputs[1], -1.0, 1.0)
