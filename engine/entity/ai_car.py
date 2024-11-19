@@ -18,14 +18,15 @@ class AICar(Car):
     A class representing an AI car.
     """
 
-    forward: float
-    turn: float
     sensor_rots: npt.NDArray[np.float32]
-    sensors: npt.NDArray[np.float32]
+    sensor_color: pygame.Color
     nn: CarNN
     out_of_track: bool
+
+    inputs: npt.NDArray[np.float32]
     outputs: npt.NDArray[np.float32]
-    sensor_color: pygame.Color
+    forward: float
+    turn: float
 
     SENSOR_DIST = 500
 
@@ -39,19 +40,23 @@ class AICar(Car):
         return self.progress / self.total_progress
 
     @property
-    def inputs(self) -> npt.NDArray[np.float32]:
+    def sensors(self) -> npt.NDArray[np.float32]:
         """
-        Get the inputs for the neural network.
+        Get the sensors of the AI car.
 
-        :return: The inputs
+        :return: The sensors of the AI car
         """
-        return np.concatenate(
-            (
-                self.sensors / self.SENSOR_DIST,
-                [self.speed / self.MAX_SPEED],
-                [self.angular_speed / self.MAX_ANGULAR_SPEED],
-            )
-        )
+        return self.inputs[2:]
+
+    @sensors.setter
+    def sensors(self, value: npt.NDArray[np.float32]):
+        """
+        Set the sensors of the AI car.
+
+        :param value: The value to set
+        :return: None
+        """
+        self.inputs[2:] = value
 
     def __init__(
         self,
@@ -65,20 +70,27 @@ class AICar(Car):
         out_of_track_color: pygame.Color = pygame.Color(255, 0, 0),
         sensor_color: pygame.Color = pygame.Color(255, 0, 0),
     ):
-        super().__init__(
-            color=color,
-            out_of_track_color=out_of_track_color,
-        )
-
         if not weights and not hidden_layer_sizes:
             raise ValueError(
                 "Either weights or hidden_layer_sizes must be provided"
             )
 
+        super().__init__(
+            color=color,
+            out_of_track_color=out_of_track_color,
+        )
+
+        self.inputs = np.array(
+            [0.0] * (len(sensor_rots) + 2), dtype=np.float32
+        )
+        self.outputs = vec(0, 0)
+        self.forward = 0.0
+        self.turn = 0.0
+
         self.nn = (
             CarNN(
                 activation=activation,
-                layer_sizes=[len(sensor_rots) + 2, *hidden_layer_sizes, 2],
+                layer_sizes=[len(self.inputs), *hidden_layer_sizes, 2],
             )
             if not weights
             else CarNN.deserialize(
@@ -87,17 +99,9 @@ class AICar(Car):
                 init_mutate_noise=init_mutate_noise,
             )
         )
-        self.outputs = vec(0, 0)
         self.sensor_rots = sensor_rots
-
-        self.forward = 0
-        self.turn = 0
-        self.sensors = np.array(
-            [self.SENSOR_DIST] * len(self.sensor_rots), dtype=np.float32
-        )
-        self.out_of_track = False
-
         self.sensor_color = sensor_color
+        self.out_of_track = False
 
         self.reset_state(track)
 
@@ -127,8 +131,9 @@ class AICar(Car):
             [
                 (
                     shapely.points(self.pos).distance(intersection)
+                    / self.SENSOR_DIST
                     if not intersection.is_empty
-                    else self.SENSOR_DIST
+                    else 1.0
                 )
                 for intersection in (
                     track.shapely_linear_ring.intersection(
@@ -168,7 +173,10 @@ class AICar(Car):
         :param camera: The camera
         :return: None
         """
-        for rot, dist in zip(self.sensor_rots + self.rot, self.sensors):
+        for rot, dist in zip(
+            self.sensor_rots + self.rot,
+            self.sensors * self.SENSOR_DIST,
+        ):
             sensor_end = self.pos + (dir(rot) * dist)
             pygame.draw.line(
                 screen,
@@ -178,6 +186,10 @@ class AICar(Car):
             )
 
     def _get_input(self) -> Car.Input:
+        # Prepare inputs to the neural network
+        self.inputs[0] = self.speed / self.MAX_SPEED
+        self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
+
         self.outputs = self.nn.activate(self.inputs)
 
         self.forward = clamp(self.outputs[0], -1.0, 1.0)

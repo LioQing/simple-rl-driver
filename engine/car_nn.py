@@ -24,11 +24,11 @@ class CarNN:
         weights: Optional[List[np.ndarray]] = None,
         layer_sizes: Optional[List[int]] = None,
     ):
-        self.prev_fitness = None
-        self.prev_weights = None
-
         if not weights and not layer_sizes:
             raise ValueError("Either weights or layer_sizes must be provided")
+
+        self.prev_fitness = None
+        self.prev_weights = None
 
         self.weights = weights or [
             np.random.normal(size=(prev_size + 1, curr_size))
