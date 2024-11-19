@@ -5,6 +5,7 @@ from typing import List, Tuple
 import numpy as np
 import pygame
 
+from engine.activations import activation_funcs
 from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
 from engine.entity.player_car import PlayerCar
@@ -21,12 +22,12 @@ DESCRIPTION = (
 NN_PATH = Path("data/nns")
 
 
-def load_nn(args: argparse.Namespace) -> Tuple[List[float], List[str]]:
+def load_nn(args: argparse.Namespace) -> Tuple[List[float], List[str], str]:
     """
     Load the neural network from the file
 
     :param args: The arguments
-    :return: The sensor rotations and the weights
+    :return: The sensor rotations, weights, and the activation
     """
     nn_file = NN_PATH / f"{args.nn}.txt"
     if not nn_file.exists():
@@ -36,9 +37,11 @@ def load_nn(args: argparse.Namespace) -> Tuple[List[float], List[str]]:
     if len(weights) == 0:
         raise ValueError(f"Weights file {nn_file} is empty")
 
-    sensor_rots = [float(r) for r in meta.split(",")]
+    sensor_rots_str, activation = meta.split(";")
 
-    return sensor_rots, weights
+    sensor_rots = [float(r) for r in sensor_rots_str.split(",")]
+
+    return sensor_rots, weights, activation
 
 
 def main_scene(args: argparse.Namespace):
@@ -58,13 +61,13 @@ def main_scene(args: argparse.Namespace):
 
     # Setup
     track = Track.load(args.track)
-    player_car = PlayerCar()
+    player_car = PlayerCar(color=pygame.Color(*args.color))
     if not args.follow_ai:
         player_car.reset_state(track)
 
     ai_cars = []
     if args.nn:
-        sensor_rots, weights = load_nn(args)
+        sensor_rots, weights, activation = load_nn(args)
 
         ai_cars = [
             AICar(
@@ -72,6 +75,7 @@ def main_scene(args: argparse.Namespace):
                 np.array(sensor_rots, dtype=np.float32),
                 weights=weights[i % len(weights)],
                 init_mutate_noise=args.init_mutate_noise,
+                activation=activation_funcs[activation],
             )
             for i in range(args.ai_count)
         ]
@@ -126,15 +130,15 @@ def main_scene(args: argparse.Namespace):
         )
 
         # draws
-        screen.fill((255, 255, 255))
+        screen.fill(pygame.Color(255, 255, 255))
 
-        track.draw(screen, pygame.Color(0, 0, 0), camera, 5)
+        track.draw(screen, camera, 5)
 
         if not args.follow_ai:
-            player_car.draw(screen, pygame.Color(0, 0, 0), camera)
+            player_car.draw(screen, camera)
 
         for car in ai_cars:
-            car.draw(screen, pygame.Color(0, 0, 0), camera)
+            car.draw(screen, camera)
 
         pygame.display.update()
 
@@ -182,6 +186,15 @@ def configure_parser(parser: argparse.ArgumentParser):
         default=0.01,
     )
     parser.add_argument(
+        "--color",
+        "-r",
+        dest="color",
+        type=int,
+        nargs=3,
+        help="The color of the player car",
+        default=(0, 0, 0),
+    )
+    parser.add_argument(
         "--follow-ai",
         dest="follow_ai",
         action="store_true",
@@ -190,7 +203,8 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--resolution",
         dest="resolution",
-        type=tuple[int, int],
+        type=int,
+        nargs=2,
         help="The resolution of the track",
         default=(800, 640),
     )

@@ -27,16 +27,11 @@ class Track:
     shapely_linear_ring: shapely.LinearRing
     shapely_polygon: shapely.Polygon
 
-    DEFAULT_POLYLINE_FACTOR = 0.05
-    DEFAULT_DIRECTORY = Path("data/tracks")
-    DEFAULT_WIDTH = 100
-    DEFAULT_SCALE = 5
-
     def __init__(
         self,
         curve: bc.BezierCurve,
         width: int,
-        polyline_factor: float = DEFAULT_POLYLINE_FACTOR,
+        polyline_factor: float = 0.05,
     ):
         self.curve = curve
         self.width = width
@@ -67,10 +62,10 @@ class Track:
     @staticmethod
     def load(
         name: str,
-        directory: Path = DEFAULT_DIRECTORY,
-        width: int = DEFAULT_WIDTH,
-        scale: int = DEFAULT_SCALE,
-        polyline_factor: float = DEFAULT_POLYLINE_FACTOR,
+        directory: Path = Path("data/tracks"),
+        width: int = 100,
+        scale: int = 5,
+        polyline_factor: float = 0.05,
     ) -> "Track":
         """
         Load the track from file system.
@@ -101,7 +96,6 @@ class Track:
     def draw(
         self,
         screen: pygame.Surface,
-        color: pygame.Color,
         camera: Camera,
         width: int = 1,
     ):
@@ -109,14 +103,13 @@ class Track:
         Draw the track on the screen.
 
         :param screen: The screen to draw on
-        :param color: The color of the track
         :param camera: The camera to use
         :param width: The width of the track edges
         :return: None
         """
         pygame.draw.polygon(
             screen,
-            color,
+            pygame.Color(0, 0, 0),
             [camera.get_coord(p) for p in self.polygon],
             width,
         )

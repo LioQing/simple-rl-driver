@@ -27,11 +27,23 @@ NN_DIR = Path("data/nns")
 
 def load_nn(
     args: argparse.Namespace,
-) -> Tuple[List[float], Optional[List[str]], Optional[List[int]], str]:
+) -> Tuple[
+    List[float],
+    Optional[List[str]],
+    Optional[List[int]],
+    str,
+    Tuple[int, int, int],
+]:
     """
     Load the neural network from the file.
-    When the file exists, it returns the sensor rotations, weights, activation,
-    otherwise it returns the sensor rotations, hidden layer sizes, activation.
+
+    | Return value | NN loaded | NN not found |
+    | :---: | :---: | :---: |
+    | Sensor rotations | Yes | Yes |
+    | Weights | Yes | No |
+    | Hidden layer sizes | No | Yes |
+    | Activation | Yes | Yes |
+    | Color | Yes | Yes |
 
     :param args: The arguments
     :return: The sensor rotations, the weights, and the hidden layer sizes
@@ -45,12 +57,19 @@ def load_nn(
                 " neural network file does not exist"
             )
         sensor_rots = [math.radians(r) for r in args.sensor_rots]
-        return sensor_rots, None, args.hidden_layer_sizes, args.activation
+        return (
+            sensor_rots,
+            None,
+            args.hidden_layer_sizes,
+            args.activation,
+            args.color,
+        )
     else:
         meta, *weights = nn_file.read_text().splitlines()
-        sensor_rots_str, activation = meta.split(";")
+        sensor_rots_str, activation, color_str = meta.split(";")
         sensor_rots = [float(r) for r in sensor_rots_str.split(",")]
-        return sensor_rots, weights, None, activation
+        color = tuple(int(c) for c in color_str.split(","))
+        return sensor_rots, weights, None, activation, color
 
 
 def save_nn(args: argparse.Namespace, ai_cars: List[AICar]):
@@ -65,11 +84,15 @@ def save_nn(args: argparse.Namespace, ai_cars: List[AICar]):
     nn_file.touch()
 
     sensor_rots = ",".join(str(rot) for rot in ai_cars[0].sensor_rots)
+    color = ",".join(str(c) for c in ai_cars[0].color)
+    activation = list(activation_funcs.keys())[
+        list(activation_funcs.values()).index(ai_cars[0].nn.activation)
+    ]
     weights = "\n".join(
         car.nn.serialize()
         for car in ai_cars[: args.save_quota or len(ai_cars)]
     )
-    nn_file.write_text(f"{sensor_rots};{args.activation}\n{weights}")
+    nn_file.write_text(f"{sensor_rots};{activation};{color}\n{weights}")
 
 
 def main_scene(args: argparse.Namespace):
@@ -91,7 +114,7 @@ def main_scene(args: argparse.Namespace):
     track = random.choice(tracks)
     camera = Camera(screen)
 
-    sensor_rots, weights, hidden_layer_sizes, activation = load_nn(args)
+    sensor_rots, weights, hidden_layer_sizes, activation, color = load_nn(args)
 
     ai_cars = [
         AICar(
@@ -101,6 +124,7 @@ def main_scene(args: argparse.Namespace):
             weights=weights[i % len(weights)] if weights else None,
             init_mutate_noise=args.init_mutate_noise,
             hidden_layer_sizes=hidden_layer_sizes,
+            color=pygame.Color(*color),
         )
         for i in range(args.ai_count)
     ]
@@ -166,9 +190,9 @@ def main_scene(args: argparse.Namespace):
         # Render
         screen.fill((255, 255, 255))
 
-        track.draw(screen, pygame.Color(0, 0, 0), camera, 5)
+        track.draw(screen, camera, 5)
         for car in ai_cars:
-            car.draw(screen, pygame.Color(0, 0, 0), camera)
+            car.draw(screen, camera)
 
         pygame.display.update()
 
@@ -288,6 +312,15 @@ def configure_parser(parser: argparse.ArgumentParser):
         default=0.5,
     )
     parser.add_argument(
+        "--color",
+        "-r",
+        dest="color",
+        type=int,
+        nargs=3,
+        help="The color of the AI car",
+        default=(0, 0, 0),
+    )
+    parser.add_argument(
         "--limit-fps",
         dest="limit_fps",
         action="store_true",
@@ -306,7 +339,8 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--resolution",
         dest="resolution",
-        type=tuple[int, int],
+        type=int,
+        nargs=2,
         help="The resolution of the track",
         default=(800, 640),
     )

@@ -25,6 +25,7 @@ class AICar(Car):
     nn: CarNN
     out_of_track: bool
     outputs: npt.NDArray[np.float32]
+    sensor_color: pygame.Color
 
     SENSOR_DIST = 500
 
@@ -45,8 +46,14 @@ class AICar(Car):
         weights: Optional[str] = None,
         init_mutate_noise: float = 0.0,
         hidden_layer_sizes: Optional[List[int]] = None,
+        color: pygame.Color = pygame.Color(0, 0, 0),
+        out_of_track_color: pygame.Color = pygame.Color(255, 0, 0),
+        sensor_color: pygame.Color = pygame.Color(255, 0, 0),
     ):
-        super().__init__(track)
+        super().__init__(
+            color=color,
+            out_of_track_color=out_of_track_color,
+        )
 
         if not weights and not hidden_layer_sizes:
             raise ValueError(
@@ -74,6 +81,8 @@ class AICar(Car):
             [self.SENSOR_DIST] * len(self.sensor_rots), dtype=np.float32
         )
         self.out_of_track = False
+
+        self.sensor_color = sensor_color
 
         self.reset_state(track)
 
@@ -123,28 +132,25 @@ class AICar(Car):
 
         super().update(dt, track)
 
-    def draw(
-        self, screen: pygame.Surface, color: pygame.Color, camera: Camera
-    ):
+    def draw(self, screen: pygame.Surface, camera: Camera):
         """
         Draw the AI car.
 
         :param screen: The screen to draw on
-        :param color: The color of the car
         :param camera: The camera
         :return: None
         """
-        super().draw(screen, color, camera)
+        super().draw(screen, camera)
 
         if self.out_of_track:
             return
 
         # Draw sensors lines
-        for i, rot in enumerate(self.sensor_rots + self.rot):
-            sensor_end = self.pos + (dir(rot) * self.sensors[i])
+        for rot, dist in zip(self.sensor_rots + self.rot, self.sensors):
+            sensor_end = self.pos + (dir(rot) * dist)
             pygame.draw.line(
                 screen,
-                pygame.Color(255, 0, 0),
+                self.sensor_color,
                 camera.get_coord(self.pos),
                 camera.get_coord(sensor_end),
             )

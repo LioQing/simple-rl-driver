@@ -96,7 +96,8 @@ def configure_parser(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--resolution",
         dest="resolution",
-        type=tuple[int, int],
+        type=int,
+        nargs=2,
         help="The resolution of the track",
         default=(800, 640),
     )

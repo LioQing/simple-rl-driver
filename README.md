@@ -15,6 +15,8 @@ Use this mode to edit tracks.
 ```bash
 usage: main.py track [-h]
                      --track TRACK
+                     [--resolution RESOLUTION RESOLUTION]
+                     [--fullscreen]
 ```
 
 Controls:
@@ -34,7 +36,7 @@ Options:
 | :---: | :---: | :---: | :---: | :--: | :---: | :---: |  
 | `-h` | `--help` | | | `bool` | Show this help message and exit. | |  
 | `-t` | `--track` | | Yes | `str` | The name of the track to edit. | |  
-| | `--resolution` | `(800, 640)` | No | `tuple[int, int]` | The resolution of the track. | |  
+| | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
 | | `--fullscreen` | | No | `bool` | Whether to run in fullscreen mode. | |
 
 ### Training Mode
@@ -43,19 +45,20 @@ Use this mode to train AI car neural networks.
 
 ```bash
 usage: main.py train [-h]
-                     --track TRACKS [TRACKS ...] --neural-network NN
+                     --track TRACKS [TRACKS ...]
+                     --neural-network NN
                      [--sensor-rots SENSOR_ROTS [SENSOR_ROTS ...]]
                      [--hidden-layer-sizes HIDDEN_LAYER_SIZES [HIDDEN_LAYER_SIZES ...]]
                      [--activation-function {sigmoid,relu,leaky_relu}]
-                     [--save-quota SAVE_QUOTA]  
+                     [--save-quota SAVE_QUOTA]
                      [--ai-count AI_COUNT]
-                     [--select-count SELECT_COUNT]  
+                     [--select-count SELECT_COUNT]
                      [--init-mutate-noise INIT_MUTATE_NOISE]
-                     [--mutate-noise MUTATE_NOISE]  
+                     [--mutate-noise MUTATE_NOISE]
                      [--mutate-learn-rate MUTATE_LEARN_RATE]
                      [--limit-fps]
-                     [--skip-frames SKIP_FRAMES]  
-                     [--resolution RESOLUTION]  
+                     [--skip-frames SKIP_FRAMES]
+                     [--resolution RESOLUTION RESOLUTION]
                      [--fullscreen]
 ```
 
@@ -72,7 +75,7 @@ Options:
 | Short | Long | Default | Required | Type | Help | Remark |  
 | :---: | :---: | :---: | :---: | :--: | :---: | :---: |  
 | `-h` | `--help` | | | `bool` | Show this help message and exit. | |  
-| `-t` | `--track`, `--tracks` | | Yes | `list[str]` | The name of the track(s) to train in. | Must specify at least one track. |  
+| `-t` | `--track`, `--tracks` | | Yes | `list[str]` | The name of the track(s) to train in. | |  
 | `-n` | `--neural-network` | | Yes | `str` | The neural network file to use for the AI. | |  
 | `-s` | `--sensor-rots`, `--sensor-rot` | | No | `list[float]` | The sensor rotations for the AI cars, in degrees, space separated. | Required if neural network file is not found, it will be used to create a new neural network. |  
 | `-z` | `--hidden-layer-sizes` | | No | `list[int]` | The hidden layer sizes for the neural network. | Required if neural network file is not found, it will be used to create a new neural network. |  
@@ -80,12 +83,13 @@ Options:
 | `-q` | `--save-quota` | | No | `int` | The number of quota of top AI cars to save into the neural network file. | |  
 | `-a` | `--ai-count` | `10` | No | `int` | The number of AI cars to use. | |  
 | `-c` | `--select-count` | `3` | No | `int` | The number of top AI cars to select for next iteration. | |  
-| `-i` | `--init-mutate-noise` | `0.01` | No | `float` | The initial mutation noise (scale of Gaussian distribution). | |  
+| `-i` | `--init-mutate-noise` | `0.01` | No | `float` | The initial mutation noise (scale of Gaussian distribution). | Only used if weights are loaded from neural network file and `ai-count` is greater than the number of weights |  
 | `-m` | `--mutate-noise` | `0.2` | No | `float` | The mutation noise (scale of Gaussian distribution). | |  
 | `-l` | `--mutate-learn-rate` | `0.5` | No | `float` | The mutation learn rate (magnitude of gradient descent). | |  
+| `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the AI car. | Only used if neural network file is not found. |  
 | | `--limit-fps` | | No | `bool` | Whether to run with limited 60 fps. | |  
-| | `--skip-frames` | `0` | No | `int` | The number of frames to skip for each update. Enabling this also disables the 60 fps limit. | |  
-| | `--resolution` | `(800, 640)` | No | `tuple[int, int]` | The resolution of the track. | |  
+| | `--skip-frames` | `0` | No | `int` | The number of frames to skip for each update. | Enabling this disables the 60 fps limit. |  
+| | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
 | | `--fullscreen` | | No | `bool` | Whether to run in fullscreen mode. | |
 
 ### Gameplay Mode
@@ -98,8 +102,9 @@ usage: main.py game [-h]
                     [--neural-network NN]
                     [--ai-count AI_COUNT]
                     [--init-mutate-noise INIT_MUTATE_NOISE]
-                    [--follow-ai]  
-                    [--resolution RESOLUTION]
+                    [--follow-ai]
+                    [--color COLOR COLOR COLOR]
+                    [--resolution RESOLUTION RESOLUTION]
                     [--fullscreen]
 ```
 
@@ -119,8 +124,9 @@ Options:
 | `-n` | `--neural-network` | | No | `str` | The neural network file to use for the AI. | |  
 | `-a` | `--ai-count` | `10` | No | `int` | The number of AI cars to use. | |  
 | `-i` | `--init-mutate-noise` | `0.01` | No | `float` | The initial mutation noise (scale of Gaussian distribution). | |  
+| `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the player car. | |  
 | | `--follow-ai` | | No | `bool` | Whether to follow the AI car and disable player car. | |  
-| | `--resolution` | `(800, 640)` | No | `tuple[int, int]` | The resolution of the track. | |  
+| | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
 | | `--fullscreen` | | No | `bool` | Whether to run in fullscreen mode. | |
 
 ## Environment Setup

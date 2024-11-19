@@ -34,6 +34,8 @@ class Car(Transformable):
     out_of_track: bool
     progress: int
     total_progress: int
+    color: pygame.Color
+    out_of_track_color: pygame.Color
 
     ACCELERATION = 3000
     ANGULAR_ACCELERATION = 50 * math.pi
@@ -53,6 +55,8 @@ class Car(Transformable):
         self,
         pos: npt.NDArray[np.float32] = vec(0, 0),
         rot: float = 0,
+        color: pygame.Color = pygame.Color(0, 0, 0),
+        out_of_track_color: pygame.Color = pygame.Color(255, 0, 0),
     ):
         super().__init__(pos, rot)
         self.speed = 0.0
@@ -62,6 +66,8 @@ class Car(Transformable):
         self.out_of_track = False
         self.progress = 0
         self.total_progress = 0
+        self.color = color
+        self.out_of_track_color = out_of_track_color
 
     def _get_input(self) -> Input:
         """
@@ -180,19 +186,16 @@ class Car(Transformable):
             rotate_angle(-self.WIDTH / 2, self.HEIGHT / 2, self.rot),
         ]
 
-    def draw(
-        self, screen: pygame.Surface, color: pygame.Color, camera: Camera
-    ):
+    def draw(self, screen: pygame.Surface, camera: Camera):
         """
         Draw the car.
 
         :param screen: The screen to draw on
-        :param color: The color of the car
         :param camera: The camera
         :return: None
         """
         polygon = [camera.get_coord(corners) for corners in self.get_corners()]
 
-        pygame.draw.polygon(screen, color, polygon)
+        pygame.draw.polygon(screen, self.color, polygon)
         if self.out_of_track:
-            pygame.draw.polygon(screen, pygame.Color(255, 0, 0), polygon, 2)
+            pygame.draw.polygon(screen, self.out_of_track_color, polygon, 2)
