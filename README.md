@@ -7,6 +7,9 @@ A reinforcement learning project for training AI cars to drive on tracks.
 - [Overview](#overview)
     - [Libraries](#libraries)
     - [Features](#features)
+- [Examples](#examples)
+    - [Training](#training)
+    - [Gameplay](#gameplay)
 - [Usage](#usage)
     - [Track Editor Mode](#track-editor-mode)
     - [Training Mode](#training-mode)
@@ -43,6 +46,67 @@ This project try to be as simple as possible, using only basic libraries and too
     - Visualize weights and biases of the neural network directly on the car.
 - Gameplay Mode: Play the game with the AI cars.
     - Follow the AI cars or control the player car.
+
+## Examples
+
+In the [`data`](./data) directory, there are some demo files for neural networks and tracks.
+
+### Training
+
+Run the following command to train the AI cars on the tracks in [`data/tracks/`](./data/tracks/).
+
+```bash
+python main.py train -t demo0 demo1 demo2 -n my-nn -s -90 -45 0 45 90 -z 4 4 2 -f leaky_relu -q 3 -a 10 -c 3
+```
+
+Options:
+
+- `-t demo0 demo1 demo2`: Use the tracks `demo0`, `demo1`, and `demo2`.
+    - Tracks are always loaded from the [`data/tracks/`](./data/tracks/) directory.
+    - The tracks are selected at random for each iteration.
+- `-n my-nn`: Use the neural network file `my-nn` to save the weights and biases.
+    - If the file exists, the weights and biases are loaded from the file, and the AI cars are initialized with them, try using `demo`.
+    - If the file does not exist, a new neural network is created with the specified hyperparameters.
+    - If you want to overwrite existing files, you need to delete them manually.
+    - Press `Ctrl + S` to save the neural network, you should be able to see the file in the [`data/nns/`](./data/nns/) directory.
+- `-s -90 -45 0 45 90`: Use the sensor rotations `-90`, `-45`, `0`, `45`, and `90` degrees.
+    - The sensor rotations are the direction of which the AI cars can sense the track's edges.
+- `-z 4 4 2`: Use the hidden layer sizes `4 4 2`.
+    - The hidden layer sizes are the number of neurons in each hidden layer.
+    - The order of the hidden layer sizes is from the input layer to the output layer, excluding the input and output layers.
+- `-f leaky_relu`: Use the activation function `leaky_relu`.
+    - If unspecified, the default activation function is `leaky_relu`.
+- `-q 3`: Save the top 3 AI cars into the neural network file.
+- `-a 10`: Use 10 AI cars.
+- `-c 3`: Select the top 3 AI cars for the next iteration.
+
+More tips:
+
+- You can manually trigger the next iteration by pressing `Space`.
+- You can adjust the initial mutation noise, mutation noise, and mutation learn rate using `-i`, `-m`, and `-l`.
+
+For more options, see the [Training Mode](#training-mode) section or run `python main.py train -h`.
+
+### Gameplay
+
+Run the following command to play the game with the AI cars using the neural network [`data/nns/demo.txt`](./data/nns/demo.txt) on the track [`data/tracks/demo0.txt`](./data/tracks/demo0.txt).
+
+```bash
+python main.py game -t demo0 -n demo -a 5
+```
+
+Options:
+
+- `-t demo0`: Use the track `demo0`.
+- `-n demo`: Use the neural network file `demo` to load the weights and biases.
+- `-a 5`: Use 5 AI cars.
+
+More tips:
+
+- You choose to not use a player car and follow the best AI cars using `--follow-ai`.
+- You can adjust the initial mutation noise using `-i`.
+
+For more options, see the [Gameplay Mode](#gameplay-mode) section or run `python main.py game -h`.
 
 ## Usage
 

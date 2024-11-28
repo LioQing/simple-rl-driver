@@ -126,8 +126,11 @@ def main_scene(args: argparse.Namespace):
 
             car.update(fixed_dt, track)
 
-        ai_cars.sort(key=lambda x: x.fitness, reverse=True)
-        camera.update(fixed_dt, ai_cars[0])
+        if args.follow_ai:
+            ai_cars.sort(key=lambda x: x.fitness, reverse=True)
+            camera.update(fixed_dt, ai_cars[0])
+        else:
+            camera.update(fixed_dt)
 
         # draws
         screen.fill(pygame.Color(255, 255, 255))
