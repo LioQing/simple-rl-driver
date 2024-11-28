@@ -142,7 +142,7 @@ class TrackEditor:
                     break
             else:
                 self.curve.pts.append(
-                    bc.BezierCurvePoint(mouse_pos, mouse_pos)
+                    bc.BezierCurvePoint(mouse_pos, mouse_pos.copy())
                 )
                 self.edit = TrackEditor.ControlState(
                     len(self.curve.pts) - 1, is_new=True
@@ -171,11 +171,12 @@ class TrackEditor:
                 self.edit.index
             ].pos - (mouse_pos - self.curve.pts[self.edit.index].pos)
 
-    def on_key_pressed(self, key: int):
+    def on_key_pressed(self, key: int, screen: pygame.Surface):
         """
         Handle the key pressed event.
 
         :param key: The key that was pressed
+        :param screen: The screen
         :return: None
         """
         if self.curve.pts and (
@@ -185,6 +186,18 @@ class TrackEditor:
         ):
             self.edit = None
             self.curve.pts.pop(len(self.curve.pts) - 1)
+        if pygame.key.get_mods() & pygame.KMOD_CTRL and key == pygame.K_v:
+            screen_height = screen.get_height()
+            for pt in self.curve.pts:
+                pt.pos[1] = screen_height - pt.pos[1]
+                pt.control[1] = screen_height - pt.control[1]
+            self.on_mouse_moved(screen)
+        if pygame.key.get_mods() & pygame.KMOD_CTRL and key == pygame.K_h:
+            screen_width = screen.get_width()
+            for pt in self.curve.pts:
+                pt.pos[0] = screen_width - pt.pos[0]
+                pt.control[0] = screen_width - pt.control[0]
+            self.on_mouse_moved(screen)
 
     def draw(
         self,

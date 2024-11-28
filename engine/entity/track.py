@@ -27,6 +27,9 @@ class Track:
     shapely_linear_ring: shapely.LinearRing
     shapely_polygon: shapely.Polygon
 
+    WIDTH = 100
+    SCALE = 5
+
     def __init__(
         self,
         curve: bc.BezierCurve,
@@ -63,8 +66,6 @@ class Track:
     def load(
         name: str,
         directory: Path = Path("data/tracks"),
-        width: int = 100,
-        scale: int = 5,
         polyline_factor: float = 0.05,
     ) -> "Track":
         """
@@ -85,13 +86,13 @@ class Track:
         curve = bc.BezierCurve.deserialize(track_file.read_text())
         curve.pts = [
             bc.BezierCurvePoint(
-                p.pos * scale,
-                p.control * scale,
+                p.pos * Track.SCALE,
+                p.control * Track.SCALE,
             )
             for p in (p.translated(-curve.pts[0].pos) for p in curve.pts)
         ]
 
-        return Track(curve, width, polyline_factor)
+        return Track(curve, Track.WIDTH, polyline_factor)
 
     def draw(
         self,

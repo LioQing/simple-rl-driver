@@ -14,6 +14,8 @@ DESCRIPTION = (
     "  release left mouse button       start editing next point\n"
     "  ctrl + s                        save the track\n"
     "  ctrl + z, del, backspace, esc   undo\n"
+    "  ctrl + h                        flip the track horizontally\n"
+    "  ctrl + v                        flip the track vertically\n"
     "  ctrl + q                        quit the program\n"
 )
 
@@ -50,7 +52,7 @@ def main_scene(args: argparse.Namespace):
             elif event.type == pygame.MOUSEMOTION:
                 editor.on_mouse_moved(screen)
             elif event.type == pygame.KEYDOWN:
-                editor.on_key_pressed(event.key)
+                editor.on_key_pressed(event.key, screen)
 
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
@@ -68,7 +70,7 @@ def main_scene(args: argparse.Namespace):
         editor.draw(
             screen,
             pygame.Color(0, 0, 0),
-            int(Track.DEFAULT_WIDTH / Track.DEFAULT_SCALE),
+            int(Track.WIDTH / Track.SCALE),
         )
 
         pygame.display.update()
