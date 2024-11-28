@@ -21,7 +21,6 @@ class AIColoredGeneCar(AICar):
 
     def __init__(
         self,
-        track: Track,
         sensor_rots: npt.NDArray[np.float32],
         activation: ActivationFunc,
         weights: Optional[str] = None,
@@ -32,7 +31,6 @@ class AIColoredGeneCar(AICar):
         sensor_color: pygame.Color = pygame.Color(255, 0, 0),
     ):
         super().__init__(
-            track=track,
             sensor_rots=sensor_rots,
             activation=activation,
             weights=weights,
@@ -49,19 +47,18 @@ class AIColoredGeneCar(AICar):
         ]
         self.colored_gene_surf = pygame.Surface((self.WIDTH, self.HEIGHT))
 
-    def update(self, dt: float, track: Track):
+    def reset_state(self, track: Track):
         """
-        Update the AI car.
+        Reset the state of the car.
 
-        :param dt: The time step
         :param track: The track
         :return: None
         """
         # Update weights surface
         for i, weights in enumerate(self.nn.weights):
             scaled_weights = (sigmoid(weights) * 510 - 255).astype(int)
-            red = np.maximum(scaled_weights, 0)
-            green = np.maximum(-scaled_weights, 0)
+            green = np.maximum(scaled_weights, 0)
+            red = np.maximum(-scaled_weights, 0)
             pygame.pixelcopy.array_to_surface(
                 self.weights_surf[i],
                 red * 0x010000 + green * 0x000100,
@@ -78,7 +75,7 @@ class AIColoredGeneCar(AICar):
                 (0, i * layer_height),
             )
 
-        super().update(dt, track)
+        super().reset_state(track)
 
     def draw(self, screen: pygame.Surface, camera: Camera):
         """

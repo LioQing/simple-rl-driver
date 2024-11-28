@@ -9,6 +9,7 @@ import numpy as np
 import pygame
 
 from engine.activations import activation_funcs
+from engine.car_nn_vis import CarNNVis
 from engine.entity.ai_car import AICar
 from engine.entity.ai_colored_gene_car import AIColoredGeneCar
 from engine.entity.camera import Camera
@@ -122,7 +123,6 @@ def main_scene(args: argparse.Namespace):
 
     ai_cars = [
         ai_car_cls(
-            track,
             sensor_rots=np.array(sensor_rots, dtype=np.float32),
             activation=activation_funcs[activation],
             weights=weights[i % len(weights)] if weights else None,
@@ -132,6 +132,15 @@ def main_scene(args: argparse.Namespace):
         )
         for i in range(args.ai_count)
     ]
+
+    for car in ai_cars:
+        car.reset_state(track)
+
+    if args.nn_vis is not None:
+        car_nn_vis = CarNNVis(
+            args.nn_vis, ai_cars[0].nn.layer_sizes, activation
+        )
+        car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
     # Next iteration function for the AI
     def next_iter():
@@ -147,6 +156,9 @@ def main_scene(args: argparse.Namespace):
 
         for car in ai_cars:
             car.reset_state(track)
+
+        if args.nn_vis:
+            car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
     # Main loop
     running = True
@@ -179,11 +191,25 @@ def main_scene(args: argparse.Namespace):
 
         # Update
         for car in ai_cars:
-            if not car.out_of_track:
-                car.update(fixed_dt, track)
+            if car.out_of_track:
+                continue
+
+            car.update(fixed_dt, track)
+
+        prev_first_car = ai_cars[0]
 
         ai_cars.sort(key=lambda x: x.fitness, reverse=True)
         camera.update(fixed_dt, ai_cars[0])
+
+        if args.nn_vis:
+            if id(prev_first_car) != id(ai_cars[0]):
+                car_nn_vis.set_weights(ai_cars[0].nn.weights)
+
+            car_nn_vis.set_nodes(
+                ai_cars[0].inputs,
+                ai_cars[0].nn.hiddens,
+                ai_cars[0].outputs,
+            )
 
         # Skip frames
         skip_frame_counter += 1
@@ -197,6 +223,9 @@ def main_scene(args: argparse.Namespace):
         track.draw(screen, camera, 5)
         for car in ai_cars:
             car.draw(screen, camera)
+
+        if args.nn_vis:
+            car_nn_vis.draw(screen, (0, 0))
 
         pygame.display.update()
 
@@ -330,6 +359,14 @@ def configure_parser(parser: argparse.ArgumentParser):
         dest="color_gene",
         action="store_true",
         help="Whether to use colored gene for the AI cars",
+    )
+    parser.add_argument(
+        "--nn-vis",
+        "--neural-network-visual",
+        dest="nn_vis",
+        type=int,
+        nargs=2,
+        help="The size of the neural network visualization",
     )
     parser.add_argument(
         "--limit-fps",

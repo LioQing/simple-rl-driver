@@ -196,6 +196,7 @@ Options:
 | `-l` | `--mutate-learn-rate` | `0.5` | No | `float` | The mutation learn rate (magnitude of gradient descent). | |  
 | `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the AI car. | Only used if neural network file is not found. |  
 | | `--color-gene`, `--colored-gene` | | No | `bool` | Whether to use colored gene for the AI car. | Overrides the color of the AI cars. |  
+| | `--nn-vis`, `--neural-network-visual` | | No | `tuple[int, int]` | The size of the neural network visualization. | |  
 | | `--limit-fps` | | No | `bool` | Whether to run with limited 60 fps. | |  
 | | `--skip-frames` | `0` | No | `int` | The number of frames to skip for each update. | Enabling this disables the 60 fps limit. |  
 | | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
@@ -237,6 +238,7 @@ Options:
 | `-r` | `--color` | `0 0 0` | No | `tuple[int, int, int]` | The color of the player car. | |  
 | | `--follow-ai` | | No | `bool` | Whether to follow the AI car and disable player car. | |  
 | | `--color-gene`, `--colored-gene` | | No | `bool` | Whether to use colored gene for the AI cars. | Overrides the color of the AI cars. |  
+| | `--nn-vis`, `--neural-network-visual` | | No | `tuple[int, int]` | The size of the neural network visualization. | |  
 | | `--resolution` | `800 640` | No | `tuple[int, int]` | The resolution of the track. | |  
 | | `--fullscreen` | | No | `bool` | Whether to run in fullscreen mode. | |
 

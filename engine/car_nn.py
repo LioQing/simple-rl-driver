@@ -16,6 +16,7 @@ class CarNN:
     prev_weights: Optional[List[npt.NDArray[np.float32]]]
     weights: List[npt.NDArray[np.float32]]
     layer_sizes: List[int]
+    hiddens: List[npt.NDArray[np.float32]]
     activation: ActivationFunc
 
     def __init__(
@@ -40,7 +41,10 @@ class CarNN:
                 *(weight.shape[1] for weight in weights),
             ]
         )
-
+        self.hiddens = [
+            np.array([0] * size, dtype=np.float32)
+            for size in self.layer_sizes[1:-1]
+        ]
         self.activation = activation
 
     def serialize(self) -> str:
@@ -93,14 +97,26 @@ class CarNN:
                 f"Expected {self.layer_sizes[0]} inputs, got {len(inputs)}"
             )
 
-        layer = np.concatenate((inputs, [1.0]))
+        self.hiddens[0] = self.activation(
+            np.dot(np.concatenate((inputs, [1.0])), self.weights[0])
+        )
 
-        for weight in self.weights[:-1]:
-            layer = np.concatenate(
-                (self.activation(np.dot(layer, weight)), [1.0])
+        for i in range(1, len(self.hiddens)):
+            self.hiddens[i] = self.activation(
+                np.dot(
+                    np.concatenate((self.hiddens[i - 1], [1.0])),
+                    self.weights[i],
+                )
             )
 
-        return np.dot(layer, self.weights[-1])
+        return np.clip(
+            np.dot(
+                np.concatenate((self.hiddens[-1], [1.0])),
+                self.weights[-1],
+            ),
+            -1.0,
+            1.0,
+        )
 
     def mutate(
         self,

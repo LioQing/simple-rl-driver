@@ -10,7 +10,7 @@ from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
 from engine.entity.track import Track
-from engine.utils import clamp, dir, vec
+from engine.utils import dir, vec
 
 
 class AICar(Car):
@@ -60,7 +60,6 @@ class AICar(Car):
 
     def __init__(
         self,
-        track: Track,
         sensor_rots: npt.NDArray[np.float32],
         activation: ActivationFunc,
         weights: Optional[str] = None,
@@ -103,8 +102,6 @@ class AICar(Car):
         self.sensor_color = sensor_color
         self.out_of_track = False
 
-        self.reset_state(track)
-
     def reset_state(self, track: Track):
         """
         Reset the state of the car.
@@ -112,8 +109,8 @@ class AICar(Car):
         :param track: The track
         :return: None
         """
-        self.forward = 0
-        self.turn = 0
+        self.forward = 0.0
+        self.turn = 0.0
         self.sensors.fill(self.SENSOR_DIST)
         self.out_of_track = False
         super().reset_state(track)
@@ -192,7 +189,7 @@ class AICar(Car):
 
         self.outputs = self.nn.activate(self.inputs)
 
-        self.forward = clamp(self.outputs[0], -1.0, 1.0)
-        self.turn = clamp(self.outputs[1], -1.0, 1.0)
+        self.forward = self.outputs[0]
+        self.turn = self.outputs[1]
 
         return Car.Input(self.forward, self.turn)
