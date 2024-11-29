@@ -12,13 +12,21 @@ class Transformable:
     """
 
     pos: npt.NDArray[np.float32]
+    """Position of the object."""
     rot: float
+    """Rotation of the object."""
 
     def __init__(
         self,
         pos: npt.NDArray[np.float32] = vec(0, 0),
         rot: float = 0,
     ):
+        """
+        Initialize the Transformable object.
+
+        :param pos: The position of the object
+        :param rot: The rotation of the object
+        """
         self.pos = pos
         self.rot = rot
 

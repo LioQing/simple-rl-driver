@@ -15,7 +15,9 @@ class BezierCurvePoint:
     """
 
     pos: npt.NDArray[np.int32]
+    """The position of the point."""
     control: npt.NDArray[np.int32]
+    """The control point of the point."""
 
     @property
     def local_control(self) -> npt.NDArray[np.int32]:
@@ -104,11 +106,19 @@ class BezierCurve:
     """
 
     pts: List[BezierCurvePoint]
+    """The points of the Bézier curve."""
     debug_point_size: int
+    """The size of the debug points."""
 
     def __init__(
         self, pts: Iterable[BezierCurvePoint] = (), debug_point_size: int = 6
     ):
+        """
+        Initialize the Bézier curve.
+
+        :param pts: The points of the Bézier curve
+        :param debug_point_size: The size of the debug points
+        """
         self.pts = list(pts)
         self.debug_point_size = debug_point_size
 

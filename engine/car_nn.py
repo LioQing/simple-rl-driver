@@ -13,11 +13,18 @@ class CarNN:
     """
 
     prev_fitness: Optional[float]
+    """The previous fitness for mutation."""
     prev_weights: Optional[List[npt.NDArray[np.float32]]]
+    """The previous weights for mutation."""
+
     weights: List[npt.NDArray[np.float32]]
+    """The weights."""
     layer_sizes: List[int]
+    """The sizes of the layers."""
     hiddens: List[npt.NDArray[np.float32]]
+    """The hidden layers."""
     activation: ActivationFunc
+    """The activation function."""
 
     def __init__(
         self,
@@ -25,6 +32,15 @@ class CarNN:
         weights: Optional[List[np.ndarray]] = None,
         layer_sizes: Optional[List[int]] = None,
     ):
+        """
+        Initialize the neural network.
+
+        Either `weights` or `layer_sizes` must be provided.
+
+        :param activation: The activation function
+        :param weights: The weights of the neural network
+        :param layer_sizes: The sizes of the layers
+        """
         if not weights and not layer_sizes:
             raise ValueError("Either weights or layer_sizes must be provided")
 

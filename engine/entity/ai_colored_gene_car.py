@@ -17,7 +17,9 @@ class AIColoredGeneCar(AICar):
     """
 
     weights_surf: List[pygame.Surface]
+    """The surfaces representing the weights."""
     colored_gene_surf: pygame.Surface
+    """The surface representing the colored gene."""
 
     def __init__(
         self,

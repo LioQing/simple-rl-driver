@@ -18,17 +18,26 @@ class Track:
     """
 
     curve: bc.BezierCurve
+    """The Bézier curve of the track."""
     width: int
+    """The width of the track."""
     polyline_factor: float
-    polyline: List[npt.NDArray[np.float32]]
-    polygon: List[npt.NDArray[np.float32]]
+    """The polyline factor of the track."""
 
-    # Shapely objects for memoization
+    polyline: List[npt.NDArray[np.float32]]
+    """The polyline of the track."""
+    polygon: List[npt.NDArray[np.float32]]
+    """The polygon of the track."""
+
     shapely_linear_ring: shapely.LinearRing
+    """The shapely linear ring of the track for optimization."""
     shapely_polygon: shapely.Polygon
+    """The shapely polygon of the track for optimization."""
 
     WIDTH = 100
+    """The width of the track."""
     SCALE = 5
+    """The scale of the track."""
 
     def __init__(
         self,
@@ -36,12 +45,18 @@ class Track:
         width: int,
         polyline_factor: float = 0.05,
     ):
+        """
+        Initialize the track.
+
+        :param curve: The Bézier curve of the track
+        :param width: The width of the track
+        :param polyline_factor: The polyline factor of the track
+        """
         self.curve = curve
         self.width = width
         self.polyline_factor = polyline_factor
 
         self.polyline = list(self.curve.get_polyline(self.polyline_factor))
-
         pco = pyclipper.PyclipperOffset()
         pco.AddPath(self.polyline, pyclipper.JT_ROUND, pyclipper.ET_OPENROUND)
         self.polygon = [vec(*p) for p in pco.Execute(self.width)[0]]
@@ -73,8 +88,6 @@ class Track:
 
         :param name: The name of the track to load
         :param directory: The directory to load the track from
-        :param width: The width of the track
-        :param scale: The scale of the track
         :param polyline_factor: The polyline factor
         :return: The track
         """

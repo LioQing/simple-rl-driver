@@ -13,16 +13,26 @@ class CarNNVis:
     """
 
     surface: pygame.Surface
+    """The surface of the visualization."""
+
     layer_width: float
+    """The width of each layer."""
     node_height: float
+    """The height of each node."""
     node_radius: float
+    """The radius of each node."""
+
     node_centers: List[List[Tuple[float, float]]]
+    """The centers of the nodes."""
     transforms: List[
         Callable[[npt.NDArray[np.float32]], npt.NDArray[np.float32]]
     ]
+    """The normalization transforms of the node values."""
 
     clear_color: pygame.Color
+    """The clear color of the surface."""
     node_color: pygame.Color
+    """The color of the nodes."""
 
     def __init__(
         self,
@@ -32,6 +42,15 @@ class CarNNVis:
         clear_color: pygame.Color = pygame.Color(32, 32, 32, 192),
         node_color: pygame.Color = pygame.Color(240, 240, 240),
     ):
+        """
+        Initialize the visualization.
+
+        :param surface_size: The size of the surface
+        :param layer_sizes: The sizes of the layers
+        :param activation: The activation function
+        :param clear_color: The clear color of the surface
+        :param node_color: The color of the nodes
+        """
         self.surface = pygame.Surface(surface_size, pygame.SRCALPHA)
 
         self.layer_sizes = layer_sizes
@@ -39,22 +58,8 @@ class CarNNVis:
         self.node_height = self.surface.get_height() / max(layer_sizes)
         self.node_radius = min(self.layer_width, self.node_height) / 3.0
 
-        self.clear_color = clear_color
-        self.node_color = node_color
-
         def identity(x):
             return x
-
-        hidden_transform = (
-            (lambda x: sigmoid(x) * 2 - 1)
-            if "relu" in activation
-            else identity
-        )
-        self.transforms = [
-            identity,
-            *([hidden_transform] * (len(layer_sizes) - 2)),
-            identity,
-        ]
 
         self.node_centers = [
             [
@@ -67,6 +72,23 @@ class CarNNVis:
             ]
             for i, size in enumerate(layer_sizes)
         ]
+        self.transforms = [
+            identity,
+            *(
+                [
+                    (
+                        (lambda x: sigmoid(x) * 2 - 1)
+                        if "relu" in activation
+                        else identity
+                    )
+                ]
+                * (len(layer_sizes) - 2)
+            ),
+            identity,
+        ]
+
+        self.clear_color = clear_color
+        self.node_color = node_color
 
     def set_weights(self, weights: List[np.ndarray]):
         """

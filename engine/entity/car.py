@@ -25,31 +25,58 @@ class Car(Transformable):
         """
 
         forward: float
+        """
+        The forward input, in the range [-1, 1], where 1 is forward and -1 is
+        backward.
+        """
         turn: float
+        """
+        The turn input, in the range [-1, 1], where 1 is right and -1 is left.
+        """
+
+    color: pygame.Color
+    """The color of the car."""
+    out_of_track_color: pygame.Color
+    """The color of the car when it is out of track."""
 
     speed: float
+    """Linear speed of the car."""
     acceleration: float
+    """Linear acceleration of the car."""
     angular_speed: float
+    """Angular speed of the car."""
     angular_acceleration: float
+    """Angular acceleration of the car."""
+
     out_of_track: bool
+    """Whether the car is out of track."""
     progress: int
+    """The progress of the car."""
     total_progress: int
-    color: pygame.Color
-    out_of_track_color: pygame.Color
+    """The total progress of the car."""
 
     ACCELERATION = 3000
+    """Linear acceleration of the car."""
     ANGULAR_ACCELERATION = 50 * math.pi
+    """Angular acceleration of the car."""
 
     DECELERATION = 6000
+    """Linear deceleration of the car when there is no input."""
     ANGULAR_DECELERATION = 100 * math.pi
+    """Angular deceleration of the car when there is no input."""
 
     MAX_SPEED = 300
+    """Maximum linear speed of the car."""
     MAX_ANGULAR_SPEED = 0.5 * math.pi
+    """Maximum angular speed of the car."""
 
     OUT_OF_TRACK_PENALTY = 0.6
+    """Penalty for being out of track."""
 
     HEIGHT = 32
+    """Height of the car."""
     WIDTH = 24
+    """Width of the car."""
 
     def __init__(
         self,
@@ -58,16 +85,28 @@ class Car(Transformable):
         color: pygame.Color = pygame.Color(0, 0, 0),
         out_of_track_color: pygame.Color = pygame.Color(255, 0, 0),
     ):
+        """
+        Initialize the car.
+
+        :param pos: The position of the car
+        :param rot: The rotation of the car
+        :param color: The color of the car
+        :param out_of_track_color: The border color of the car when it is out
+            of track
+        """
         super().__init__(pos, rot)
+
+        self.color = color
+        self.out_of_track_color = out_of_track_color
+
         self.speed = 0.0
         self.acceleration = 0.0
         self.angular_speed = 0.0
         self.angular_acceleration = 0.0
+
         self.out_of_track = False
         self.progress = 0
         self.total_progress = 0
-        self.color = color
-        self.out_of_track_color = out_of_track_color
 
     def _get_input(self) -> Input:
         """
@@ -85,12 +124,14 @@ class Car(Transformable):
         :return: None
         """
         self.pos = track.curve.pts[0].pos.astype(np.float32)
+        self.rot = np.atan2(*track.get_start_dir()) - math.pi
+
         self.speed = 0.0
         self.acceleration = 0.0
         self.angular_speed = 0.0
         self.angular_acceleration = 0.0
+
         self.out_of_track = False
-        self.rot = np.atan2(*track.get_start_dir()) - math.pi
         self.progress = 0
         self.total_progress = len(track.polyline)
 
@@ -102,13 +143,10 @@ class Car(Transformable):
         :param track: The track
         :return: None
         """
-        # Movement
         input_data = self._get_input()
 
+        # Linear movement
         self.acceleration = input_data.forward * self.ACCELERATION * dt
-        self.angular_acceleration = (
-            input_data.turn * self.ANGULAR_ACCELERATION * dt
-        )
 
         if self.acceleration != 0:
             self.speed += self.acceleration * dt
@@ -122,6 +160,11 @@ class Car(Transformable):
                 self.speed = 0
             else:
                 self.speed -= dspeed
+
+        # Angular movement
+        self.angular_acceleration = (
+            input_data.turn * self.ANGULAR_ACCELERATION * dt
+        )
 
         if self.angular_acceleration != 0:
             self.angular_speed += self.angular_acceleration * dt
@@ -143,6 +186,7 @@ class Car(Transformable):
             else:
                 self.angular_speed -= dangular_speed
 
+        # Out of track handling
         self.out_of_track = not track.shapely_polygon.contains(
             shapely.points(self.pos)
         )
@@ -197,5 +241,6 @@ class Car(Transformable):
         polygon = [camera.get_coord(corners) for corners in self.get_corners()]
 
         pygame.draw.polygon(screen, self.color, polygon)
+
         if self.out_of_track:
             pygame.draw.polygon(screen, self.out_of_track_color, polygon, 2)
