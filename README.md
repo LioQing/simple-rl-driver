@@ -103,7 +103,7 @@ Options:
 
 More tips:
 
-- You choose to not use a player car and follow the best AI cars using `--follow-ai`.
+- You can choose to not use a player car and follow the best AI cars using `--follow-ai`.
 - You can adjust the initial mutation noise using `-i`.
 
 For more options, see the [Gameplay Mode](#gameplay-mode) section or run `python main.py game -h`.
@@ -134,6 +134,8 @@ Controls:
 | Press right mouse button | Remove a point |
 | Press `Ctrl` + `S` | Save the track |
 | Press `Ctrl` + `Z`, `Del`, `Backspace`, `Esc` | Undo |
+| Press `Ctrl + H` | Flip the track horizontally |
+| Press `Ctrl + V` | Flip the track vertically |
 | Press `Ctrl` + `Q` | Quit the program |
 
 Options:
