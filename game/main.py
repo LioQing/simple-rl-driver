@@ -57,38 +57,79 @@ def main_scene(args: argparse.Namespace):
     :return: None
     """
     # Argument check
+    #
+    # If `args.follow_ai` is True and `args.nn` is not provided, raise a
+    # ValueError
     if args.follow_ai and not args.nn:
         raise ValueError(
             "AI follow mode `--follow-ai` requires neural network"
             " `--neural-network`"
         )
 
+    # If `args.nn_vis` is True and `args.nn` is not provided, raise a
+    # ValueError
     if args.nn_vis and not args.nn:
         raise ValueError(
             "Neural network visualization `--nn-vis` requires neural network"
             " `--neural-network`"
         )
 
-    # Pygame setup
+    # Initialize pygame by calling `init`
     pygame.init()
+
+    # Set the window title with `set_caption`
     pygame.display.set_caption("Simple RL Driver - Game Play")
+
+    # Create a clock object to help control the frame rate
     clock = pygame.time.Clock()
+
+    # Create a screen with `set_mode`
+    #
+    # `args.resolution` is a tuple[int, int] in the form of (width, height)
+    #
+    # `args.fullscreen` is a boolean indicating whether to run in fullscreen
+    # mode
     screen = pygame.display.set_mode(
         args.resolution,
         (pygame.FULLSCREEN if args.fullscreen else 0) | pygame.RESIZABLE,
     )
 
-    # Setup
+    # Setup the track by loading it
+    #
+    # `args.track` is a string representing the name of the track to play in
     track = Track.load(args.track)
+
+    # Create a player car object
+    #
+    # `args.color` is a tuple[int, int, int] representing the color of the
+    # player car
     player_car = PlayerCar(color=pygame.Color(*args.color))
+
+    # If `args.follow_ai` is False, reset the state of the player car by
+    # calling `reset_state` with the track
     if not args.follow_ai:
         player_car.reset_state(track)
 
+    # Create a list of AI cars
     ai_cars = []
+
+    # If `args.nn` is provided, load the neural network arguments using
+    # `load_nn`
     if args.nn:
         sensor_rots, weights, activation, color = load_nn(args)
+
+        # Choose the AI car class based on `args.color_gene`
         ai_car_cls = AIColoredGeneCar if args.color_gene else AICar
 
+        # Create a list of AI cars
+        #
+        # `args.ai_count` is the number of AI cars
+        #
+        # Get the activation function using `activation_funcs[activation]`
+        #
+        # Take the i-th element of `weights` if it is not None, otherwise None
+        #
+        # Supply `init_mutate_noise` with `args.init_mutate_noise`
         ai_cars = [
             ai_car_cls(
                 np.array(sensor_rots, dtype=np.float32),
@@ -100,94 +141,131 @@ def main_scene(args: argparse.Namespace):
             for i in range(args.ai_count)
         ]
 
+        # Reset the state of each AI car by calling `reset_state` with the
+        # track
         for car in ai_cars:
             car.reset_state(track)
 
+    # If neural network visualization is enabled, create a CarNNVis object
+    #
+    # `args.nn_vis` is a tuple[int, int] in the form of (width, height)
+    # indicating the size of the neural network visualization
     if args.nn_vis:
         car_nn_vis = CarNNVis(
             args.nn_vis, ai_cars[0].nn.layer_sizes, activation
         )
         car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
+    # Create a camera object
+    #
+    # If `args.follow_ai` is True, follow the first AI car, otherwise follow
+    # the player car
     camera = Camera(screen, player_car)
 
-    # Restart function
+    # Define the restart function
     def restart():
+        # If `args.follow_ai` is False, reset the state of the player car by
+        # calling `reset_state` with the track
         if not args.follow_ai:
             player_car.reset_state(track)
 
+        # Reset the state of each AI car by calling `reset_state` with the
+        # track
         for car in ai_cars:
             car.reset_state(track)
 
+        # Update the neural network visualization if enabled
         if args.nn_vis:
             car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
-    # Main loop
+    # Main loop forever while `running` is True
     running = True
     fixed_dt = 0.032
     while running:
-        # Handle events
+        # Handle events from `pygame.event.get()`
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                # If it is a quit event, we stop the loop
                 running = False
             elif event.type == pygame.KEYDOWN:
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_r
                 ):
+                    # If control + r is pressed, we restart the program
                     restart()
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_q
                 ):
+                    # If control + q is pressed, we quit the program
                     running = False
 
-        # Update
+        # Update the player car if `args.follow_ai` is False
         if not args.follow_ai:
             player_car.update(fixed_dt, track)
 
+        # Update each AI car
+        #
+        # Skip the car if it is out of track
         for car in ai_cars:
             if car.out_of_track:
                 continue
 
             car.update(fixed_dt, track)
 
+        # If neural network visualization is enabled, store the first AI car
         if args.nn_vis:
             prev_first_car = ai_cars[0]
 
+        # If neural network visualization or AI follow mode is enabled, sort
+        # the AI cars by fitness in descending order
         if args.nn_vis or args.follow_ai:
             ai_cars.sort(key=lambda x: x.fitness, reverse=True)
 
+        # Update the camera to follow the first AI car if `args.follow_ai` is
+        # True, otherwise follow the player car
         camera.update(fixed_dt, args.follow_ai and ai_cars[0])
 
+        # Update the neural network visualization if enabled
         if args.nn_vis:
+            # Update the weights if it is a different most fit car
             if id(prev_first_car) != id(ai_cars[0]):
                 car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
+            # Update the node's values on the visualization
             car_nn_vis.set_nodes(
                 ai_cars[0].inputs,
                 ai_cars[0].nn.hiddens,
                 ai_cars[0].outputs,
             )
 
-        # Draws
+        # Clear the screen with white color by using `fill` method on the
+        # screen object
         screen.fill(pygame.Color(255, 255, 255))
 
+        # Draw the track and the cars on the screen
         track.draw(screen, camera, 5)
 
+        # Draw the player car if `args.follow_ai` is False
         if not args.follow_ai:
             player_car.draw(screen, camera)
 
+        # Draw each AI car on the screen
         for car in ai_cars:
             car.draw(screen, camera)
 
+        # Draw the neural network visualization if enabled
         if args.nn_vis:
             car_nn_vis.draw(screen, (0, 0))
 
+        # Update the display with `update`
         pygame.display.update()
 
+        # Tick the clock to control the frame rate
         clock.tick(60)
 
+    # Quit pygame with `quit`
     pygame.quit()
 
 

@@ -32,10 +32,15 @@ class Camera(Transformable):
         :param pos: The position to transform
         :return: The transformed coordinate
         """
+        # Get the position from the camera's perspective
         local_pos = pos - self.pos
 
+        # Rotate the position about the camera position
         rot_pos = np.dot(rot_mat(-self.rot), local_pos)
 
+        # Since the screen's origin is at the top left while we want the camera
+        # position to be at the center of the screen, we need to add the center
+        # of the screen to the rotated position
         center = vec(*self.screen.get_rect().center)
 
         return center + rot_pos
@@ -48,8 +53,11 @@ class Camera(Transformable):
         :param follow: The new object to follow
         :return: None
         """
+        # If there is a new object to follow, update the follow field
         if follow:
             self.follow = follow
 
+        # Then update the position and rotation of the camera to match the
+        # object being followed
         self.pos = self.follow.pos
         self.rot = self.follow.rot

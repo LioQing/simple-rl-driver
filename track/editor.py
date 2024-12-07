@@ -41,14 +41,17 @@ class TrackEditor:
 
         index: int
 
+    # Define the attributes of the TrackEditor class
     curve: bc.BezierCurve
     edit: Optional[Union[PointState, ControlState, OppositeControlState]]
     point_size: int
 
+    # Default values for point size and directory
     DEFAULT_POINT_SIZE = 6
     DEFAULT_DIRECTORY = Path("data/tracks")
 
     def __init__(self, point_size: int = DEFAULT_POINT_SIZE):
+        # Initialize the Bezier curve and other attributes
         self.curve = bc.BezierCurve()
         self.edit = None
         self.point_size = point_size
@@ -63,13 +66,17 @@ class TrackEditor:
         :param directory: The directory to load the track from
         :return: The track editor
         """
+        # Create a new TrackEditor instance
         editor = TrackEditor()
 
+        # Define the track file path
         track_file = directory / f"{name}.txt"
 
+        # Check if the track file exists
         if not track_file.exists():
             return editor
 
+        # Deserialize the Bezier curve from the file
         editor.curve = BezierCurve.deserialize(track_file.read_text())
 
         return editor
@@ -82,12 +89,15 @@ class TrackEditor:
         :param directory: The directory to save the track to
         :return: None
         """
+        # Define the track file path
         track_file = directory / f"{name}.txt"
 
+        # Create the directory and file if they do not exist
         if not track_file.exists():
             track_file.parent.mkdir(parents=True, exist_ok=True)
             track_file.touch()
 
+        # Serialize the Bezier curve and write to the file
         track_file.write_text(self.curve.serialize())
 
     def on_mouse_up(self, button: int):
@@ -97,20 +107,25 @@ class TrackEditor:
         :param button: The button that was pressed
         :return: None
         """
+        # Check if the left mouse button was released
         if button != 1:
             return
 
+        # Get the current mouse position
         mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
+        # Check if a new control point is being edited
         if (
             isinstance(self.edit, TrackEditor.ControlState)
             and self.edit.is_new
         ):
+            # Add a new Bezier curve point
             self.curve.pts.append(bc.BezierCurvePoint(mouse_pos, mouse_pos))
             self.edit = TrackEditor.PointState(
                 len(self.curve.pts) - 1, is_new=True
             )
         else:
+            # Reset the edit state
             self.edit = None
 
     def on_mouse_down(self, button: int):
@@ -120,12 +135,16 @@ class TrackEditor:
         :param button: The button that was pressed
         :return: None
         """
+        # Check if the left mouse button was pressed
         if button != 1:
             return
 
+        # Get the current mouse position
         mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
+        # Check if no point is currently being edited
         if self.edit is None:
+            # Iterate through the points to find the one being clicked
             for i, p in enumerate(self.curve.pts):
                 dist = np.linalg.norm(p.pos - mouse_pos)
                 control_dist = np.linalg.norm(p.control - mouse_pos)
@@ -141,6 +160,7 @@ class TrackEditor:
                     self.edit = TrackEditor.PointState(i)
                     break
             else:
+                # Add a new Bezier curve point if none was found
                 self.curve.pts.append(
                     bc.BezierCurvePoint(mouse_pos, mouse_pos.copy())
                 )
@@ -148,6 +168,7 @@ class TrackEditor:
                     len(self.curve.pts) - 1, is_new=True
                 )
         elif isinstance(self.edit, TrackEditor.PointState):
+            # Switch to editing the control point of the selected point
             self.edit = TrackEditor.ControlState(
                 self.edit.index, is_new=self.edit.is_new
             )
@@ -159,8 +180,10 @@ class TrackEditor:
         :param screen: The screen
         :return: None
         """
+        # Get the current mouse position
         mouse_pos = vec(*pygame.mouse.get_pos(), dtype=np.int32)
 
+        # Check the type of point being edited and update its position
         if isinstance(self.edit, TrackEditor.PointState):
             bounded = np.clip(mouse_pos, (0, 0), screen.get_size())
             self.curve.pts[self.edit.index].move_to(bounded)
@@ -179,20 +202,28 @@ class TrackEditor:
         :param screen: The screen
         :return: None
         """
+        # Check if the delete, backspace, escape, or Ctrl+Z keys were pressed
         if self.curve.pts and (
             key in (pygame.K_DELETE, pygame.K_BACKSPACE, pygame.K_ESCAPE)
             or key == pygame.K_z
             and pygame.key.get_mods() & pygame.KMOD_CTRL
         ):
+            # Reset the edit state and remove the last point
             self.edit = None
             self.curve.pts.pop(len(self.curve.pts) - 1)
+
+        # Check if Ctrl+V was pressed
         if pygame.key.get_mods() & pygame.KMOD_CTRL and key == pygame.K_v:
+            # Invert the y-coordinate of the points within the screen
             screen_height = screen.get_height()
             for pt in self.curve.pts:
                 pt.pos[1] = screen_height - pt.pos[1]
                 pt.control[1] = screen_height - pt.control[1]
             self.on_mouse_moved(screen)
+
+        # Check if Ctrl+H was pressed
         if pygame.key.get_mods() & pygame.KMOD_CTRL and key == pygame.K_h:
+            # Invert the x-coordinate of the points within the screen
             screen_width = screen.get_width()
             for pt in self.curve.pts:
                 pt.pos[0] = screen_width - pt.pos[0]
@@ -217,5 +248,6 @@ class TrackEditor:
         :param edit_width: The width of the edit
         :return: None
         """
+        # Draw the Bezier curve and the edit points
         self.curve.draw(screen, line_color, line_width)
         self.curve.draw_edit(screen, edit_color, edit_width)

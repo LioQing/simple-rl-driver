@@ -2,6 +2,8 @@
 
 A reinforcement learning project for training AI cars to drive on tracks.
 
+This is the workshop version of the project, which includes comprehensive comments and explanations for most parts of the code.
+
 ## Table of Contents
 
 - [Overview](#overview)

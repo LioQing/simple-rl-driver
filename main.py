@@ -13,6 +13,9 @@ def configure_parser(parser: argparse.ArgumentParser):
     :param parser: The parser to configure
     :return: None
     """
+    # Add a subparser to the main parser
+    # This allows for mode-specific parsers to parse arguments related to only
+    # that mode
     subparsers = parser.add_subparsers(
         dest="mode",
         help="The mode to run in",
@@ -52,10 +55,16 @@ def main():
     Main entry point for the program
     :return: None
     """
+    # Create the argument parser with the description
     parser = argparse.ArgumentParser(description=DESCRIPTION)
+
+    # Configure the main parser
     configure_parser(parser)
+
+    # Parse the arguments
     args = parser.parse_args()
 
+    # Run the main_scene with the arguments based on the `mode` argument
     if args.mode == "game":
         game.main.main_scene(args)
     elif args.mode == "track":

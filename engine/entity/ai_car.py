@@ -101,20 +101,32 @@ class AICar(Car):
             of track
         :param sensor_color: The color of the sensor rays
         """
+        # Check if either weights or hidden_layer_sizes is provided
         if not weights and not hidden_layer_sizes:
             raise ValueError(
                 "Either weights or hidden_layer_sizes must be provided"
             )
 
+        # Call the base class constructor, i.e. `Car.__init__`
         super().__init__(
             color=color,
             out_of_track_color=out_of_track_color,
         )
 
+        # Initialize the inputs, which is of length `len(sensor_rots) + 2`
         self.inputs = np.array(
             [0.0] * (len(sensor_rots) + 2), dtype=np.float32
         )
+
+        # Initialize the outputs
         self.outputs = vec(0, 0)
+
+        # Initialize the neural network
+        #
+        # The first layer size must be the length of the inputs, followed by
+        # the hidden layer sizes, and finally the length of the outputs
+        #
+        # And deserialize the weights if provided
         self.nn = (
             CarNN(
                 activation=activation,
@@ -157,6 +169,14 @@ class AICar(Car):
         :return: None
         """
         # Update sensors
+        #
+        # For each global sensor rotation (the sensor rotation plus the car
+        # rotation), find the intersection of those sensor rays with the edge
+        # of the track, i.e. `shapely_linear_ring`
+        #
+        # Then, for each of these intersections, calculate the distance from
+        # the car to the intersection, and normalize it by `SENSOR_DIST` so
+        # they are within [0, 1]
         self.sensors = np.array(
             [
                 (
@@ -203,6 +223,7 @@ class AICar(Car):
         :param camera: The camera
         :return: None
         """
+        # Use the sensor rotations and the sensor distances to draw the lines
         for rot, dist in zip(
             self.sensor_rots + self.rot,
             self.sensors * self.SENSOR_DIST,
@@ -217,6 +238,9 @@ class AICar(Car):
 
     def _get_input(self) -> Car.Input:
         # Prepare inputs to the neural network
+        #
+        # Normalize the speed and angular speed by their maximum values so
+        # they are within [-1, 1]
         self.inputs[0] = self.speed / self.MAX_SPEED
         self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
 
