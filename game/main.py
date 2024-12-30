@@ -6,9 +6,7 @@ import numpy as np
 import pygame
 
 from engine.activations import activation_funcs
-from engine.car_nn_vis import CarNNVis
 from engine.entity.ai_car import AICar
-from engine.entity.ai_colored_gene_car import AIColoredGeneCar
 from engine.entity.camera import Camera
 from engine.entity.player_car import PlayerCar
 from engine.entity.track import Track
@@ -66,14 +64,6 @@ def main_scene(args: argparse.Namespace):
             " `--neural-network`"
         )
 
-    # If `args.nn_vis` is True and `args.nn` is not provided, raise a
-    # ValueError
-    if args.nn_vis and not args.nn:
-        raise ValueError(
-            "Neural network visualization `--nn-vis` requires neural network"
-            " `--neural-network`"
-        )
-
     # Initialize pygame by calling `init`
     pygame.init()
 
@@ -118,9 +108,6 @@ def main_scene(args: argparse.Namespace):
     if args.nn:
         sensor_rots, weights, activation, color = load_nn(args)
 
-        # Choose the AI car class based on `args.color_gene`
-        ai_car_cls = AIColoredGeneCar if args.color_gene else AICar
-
         # Create a list of AI cars
         #
         # `args.ai_count` is the number of AI cars
@@ -131,7 +118,7 @@ def main_scene(args: argparse.Namespace):
         #
         # Supply `init_mutate_noise` with `args.init_mutate_noise`
         ai_cars = [
-            ai_car_cls(
+            AICar(
                 np.array(sensor_rots, dtype=np.float32),
                 weights=weights[i % len(weights)],
                 init_mutate_noise=args.init_mutate_noise,
@@ -145,16 +132,6 @@ def main_scene(args: argparse.Namespace):
         # track
         for car in ai_cars:
             car.reset_state(track)
-
-    # If neural network visualization is enabled, create a CarNNVis object
-    #
-    # `args.nn_vis` is a tuple[int, int] in the form of (width, height)
-    # indicating the size of the neural network visualization
-    if args.nn_vis:
-        car_nn_vis = CarNNVis(
-            args.nn_vis, ai_cars[0].nn.layer_sizes, activation
-        )
-        car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
     # Create a camera object
     #
@@ -173,10 +150,6 @@ def main_scene(args: argparse.Namespace):
         # track
         for car in ai_cars:
             car.reset_state(track)
-
-        # Update the neural network visualization if enabled
-        if args.nn_vis:
-            car_nn_vis.set_weights(ai_cars[0].nn.weights)
 
     # Main loop forever while `running` is True
     running = True
@@ -214,31 +187,14 @@ def main_scene(args: argparse.Namespace):
 
             car.update(fixed_dt, track)
 
-        # If neural network visualization is enabled, store the first AI car
-        if args.nn_vis:
-            prev_first_car = ai_cars[0]
-
-        # If neural network visualization or AI follow mode is enabled, sort
+        # If AI follow mode is enabled, sort
         # the AI cars by fitness in descending order
-        if args.nn_vis or args.follow_ai:
+        if args.follow_ai:
             ai_cars.sort(key=lambda x: x.fitness, reverse=True)
 
         # Update the camera to follow the first AI car if `args.follow_ai` is
         # True, otherwise follow the player car
         camera.update(fixed_dt, args.follow_ai and ai_cars[0])
-
-        # Update the neural network visualization if enabled
-        if args.nn_vis:
-            # Update the weights if it is a different most fit car
-            if id(prev_first_car) != id(ai_cars[0]):
-                car_nn_vis.set_weights(ai_cars[0].nn.weights)
-
-            # Update the node's values on the visualization
-            car_nn_vis.set_nodes(
-                ai_cars[0].inputs,
-                ai_cars[0].nn.hiddens,
-                ai_cars[0].outputs,
-            )
 
         # Clear the screen with white color by using `fill` method on the
         # screen object
@@ -254,10 +210,6 @@ def main_scene(args: argparse.Namespace):
         # Draw each AI car on the screen
         for car in ai_cars:
             car.draw(screen, camera)
-
-        # Draw the neural network visualization if enabled
-        if args.nn_vis:
-            car_nn_vis.draw(screen, (0, 0))
 
         # Update the display with `update`
         pygame.display.update()
