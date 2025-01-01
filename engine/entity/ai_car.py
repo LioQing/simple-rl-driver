@@ -10,7 +10,7 @@ from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
 from engine.entity.track import Track
-from engine.utils import dir, vec
+from engine.utils import dir
 
 
 class AICar(Car):
@@ -101,12 +101,6 @@ class AICar(Car):
             of track
         :param sensor_color: The color of the sensor rays
         """
-        # Check if either weights or hidden_layer_sizes is provided
-        if not weights and not hidden_layer_sizes:
-            raise ValueError(
-                "Either weights or hidden_layer_sizes must be provided"
-            )
-
         # Call the base class constructor, i.e. `Car.__init__`
         super().__init__(
             color=color,
@@ -116,28 +110,6 @@ class AICar(Car):
         # Initialize the inputs, which is of length `len(sensor_rots) + 2`
         self.inputs = np.array(
             [0.0] * (len(sensor_rots) + 2), dtype=np.float32
-        )
-
-        # Initialize the outputs
-        self.outputs = vec(0, 0)
-
-        # Initialize the neural network
-        #
-        # The first layer size must be the length of the inputs, followed by
-        # the hidden layer sizes, and finally the length of the outputs
-        #
-        # And deserialize the weights if provided
-        self.nn = (
-            CarNN(
-                activation=activation,
-                layer_sizes=[len(self.inputs), *hidden_layer_sizes, 2],
-            )
-            if not weights
-            else CarNN.deserialize(
-                activation=activation,
-                string=weights,
-                init_mutate_noise=init_mutate_noise,
-            )
         )
 
         self.forward = 0.0
@@ -244,10 +216,11 @@ class AICar(Car):
         self.inputs[0] = self.speed / self.MAX_SPEED
         self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
 
-        self.outputs = self.nn.activate(self.inputs)
+        # TODO: Activate the neural network to
+        # get the ouotput based on the inputs
 
         # Assign outputs of neural network to inputs of the car
-        self.forward = self.outputs[0]
-        self.turn = self.outputs[1]
+        self.forward = 1
+        self.turn = -1
 
         return Car.Input(self.forward, self.turn)

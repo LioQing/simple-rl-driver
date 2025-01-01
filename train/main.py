@@ -1,7 +1,6 @@
 import argparse
 import math
 import random
-from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -163,27 +162,6 @@ def main_scene(args: argparse.Namespace):
 
     # Define the next iteration function for the AI cars
     def next_iter():
-        # Sort the AI cars by fitness in descending order so that we can select
-        # the top `args.select_count` cars for the next iteration
-        ai_cars.sort(key=lambda x: x.fitness, reverse=True)
-
-        # Mutate the neural networks of the cars that are not selected
-        #
-        # Loop from `args.select_count` to the end of the list
-        #
-        # Set the neural network of the i-th car to be a deep copy of the
-        # `i % args.select_count`-th car's neural network
-        #
-        # Mutate with `args.mutate_noise`, `args.mutate_learn_rate`, and the
-        # car's own fitness
-        for i in range(args.select_count, len(ai_cars)):
-            ai_cars[i].nn = deepcopy(ai_cars[i % args.select_count].nn)
-            ai_cars[i].nn.mutate(
-                args.mutate_noise,
-                args.mutate_learn_rate,
-                ai_cars[i].fitness,
-            )
-
         # Reset the state of each car
         for car in ai_cars:
             car.reset_state(track)

@@ -54,16 +54,6 @@ def main_scene(args: argparse.Namespace):
     :param args: The arguments
     :return: None
     """
-    # Argument check
-    #
-    # If `args.follow_ai` is True and `args.nn` is not provided, raise a
-    # ValueError
-    if args.follow_ai and not args.nn:
-        raise ValueError(
-            "AI follow mode `--follow-ai` requires neural network"
-            " `--neural-network`"
-        )
-
     # Initialize pygame by calling `init`
     pygame.init()
 
