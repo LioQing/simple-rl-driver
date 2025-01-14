@@ -160,12 +160,6 @@ def main_scene(args: argparse.Namespace):
     for car in ai_cars:
         car.reset_state(track)
 
-    # Define the next iteration function for the AI cars
-    def next_iter():
-        # Reset the state of each car
-        for car in ai_cars:
-            car.reset_state(track)
-
     # Main loop forever while `running` is True
     running = True
     fixed_dt = 0.032
@@ -189,31 +183,6 @@ def main_scene(args: argparse.Namespace):
                 ):
                     # If control + s is pressed, we save the neural network
                     save_nn(args, ai_cars)
-                if event.key == pygame.K_RETURN:
-                    # If enter is pressed, we trigger the next iteration
-                    #
-                    # Also randomize the new track before the next iteration
-                    track = random.choice(tracks)
-                    next_iter()
-
-        # If all cars are out of track, trigger the next iteration
-        #
-        # Also randomize the new track before the next iteration
-        if all(car.out_of_track for car in ai_cars):
-            track = random.choice(tracks)
-            next_iter()
-
-        # Update each car
-        #
-        # Skip the car if it is out of track
-        for car in ai_cars:
-            if car.out_of_track:
-                continue
-
-            car.update(fixed_dt, track)
-
-        # Sort the AI cars by fitness in descending order
-        ai_cars.sort(key=lambda x: x.fitness, reverse=True)
 
         # Update the camera to follow the first AI car, i.e. the most fit car
         camera.update(fixed_dt, ai_cars[0])

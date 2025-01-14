@@ -3,14 +3,12 @@ from typing import List, Optional
 import numpy as np
 import numpy.typing as npt
 import pygame
-import shapely
 
 from engine.activations import ActivationFunc
 from engine.car_nn import CarNN
 from engine.entity.camera import Camera
 from engine.entity.car import Car
 from engine.entity.track import Track
-from engine.utils import dir
 
 
 class AICar(Car):
@@ -50,7 +48,7 @@ class AICar(Car):
 
         :return: The fitness of the AI car
         """
-        return self.progress / self.total_progress
+        return 0.0
 
     @property
     def sensors(self) -> npt.NDArray[np.float32]:
@@ -61,7 +59,7 @@ class AICar(Car):
 
         :return: The sensors of the AI car
         """
-        return self.inputs[2:]
+        return np.array()
 
     @sensors.setter
     def sensors(self, value: npt.NDArray[np.float32]):
@@ -73,7 +71,7 @@ class AICar(Car):
         :param value: The value to set
         :return: None
         """
-        self.inputs[2:] = value
+        pass
 
     def __init__(
         self,
@@ -101,22 +99,7 @@ class AICar(Car):
             of track
         :param sensor_color: The color of the sensor rays
         """
-        # Call the base class constructor, i.e. `Car.__init__`
-        super().__init__(
-            color=color,
-            out_of_track_color=out_of_track_color,
-        )
-
-        # Initialize the inputs, which is of length `len(sensor_rots) + 2`
-        self.inputs = np.array(
-            [0.0] * (len(sensor_rots) + 2), dtype=np.float32
-        )
-
-        self.forward = 0.0
-        self.turn = 0.0
-
-        self.sensor_rots = sensor_rots
-        self.sensor_color = sensor_color
+        super().__init__(color, out_of_track_color)
 
     def reset_state(self, track: Track):
         """
@@ -125,11 +108,6 @@ class AICar(Car):
         :param track: The track
         :return: None
         """
-        self.forward = 0.0
-        self.turn = 0.0
-
-        self.sensors.fill(self.SENSOR_DIST)
-
         super().reset_state(track)
 
     def update(self, dt: float, track: Track):
@@ -140,38 +118,6 @@ class AICar(Car):
         :param track: The track
         :return: None
         """
-        # Update sensors
-        #
-        # For each global sensor rotation (the sensor rotation plus the car
-        # rotation), find the intersection of those sensor rays with the edge
-        # of the track, i.e. `shapely_linear_ring`
-        #
-        # Then, for each of these intersections, calculate the distance from
-        # the car to the intersection, and normalize it by `SENSOR_DIST` so
-        # they are within [0, 1]
-        self.sensors = np.array(
-            [
-                (
-                    shapely.points(self.pos).distance(intersection)
-                    / self.SENSOR_DIST
-                    if not intersection.is_empty
-                    else 1.0
-                )
-                for intersection in (
-                    track.shapely_linear_ring.intersection(
-                        shapely.linestrings(
-                            [
-                                self.pos,
-                                self.pos + (dir(rot) * self.SENSOR_DIST),
-                            ]
-                        )
-                    )
-                    for rot in self.sensor_rots + self.rot
-                )
-            ],
-            dtype=np.float32,
-        )
-
         super().update(dt, track)
 
     def draw(self, screen: pygame.Surface, camera: Camera):
@@ -182,9 +128,6 @@ class AICar(Car):
         :param camera: The camera
         :return: None
         """
-        if not self.out_of_track:
-            self.draw_sensor(screen, camera)
-
         super().draw(screen, camera)
 
     def draw_sensor(self, screen: pygame.Surface, camera: Camera):
@@ -195,32 +138,7 @@ class AICar(Car):
         :param camera: The camera
         :return: None
         """
-        # Use the sensor rotations and the sensor distances to draw the lines
-        for rot, dist in zip(
-            self.sensor_rots + self.rot,
-            self.sensors * self.SENSOR_DIST,
-        ):
-            sensor_end = self.pos + (dir(rot) * dist)
-            pygame.draw.line(
-                screen,
-                self.sensor_color,
-                camera.get_coord(self.pos),
-                camera.get_coord(sensor_end),
-            )
+        pass
 
     def _get_input(self) -> Car.Input:
-        # Prepare inputs to the neural network
-        #
-        # Normalize the speed and angular speed by their maximum values so
-        # they are within [-1, 1]
-        self.inputs[0] = self.speed / self.MAX_SPEED
-        self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
-
-        # TODO: Activate the neural network to
-        # get the ouotput based on the inputs
-
-        # Assign outputs of neural network to inputs of the car
-        self.forward = 1
-        self.turn = -1
-
-        return Car.Input(self.forward, self.turn)
+        return Car.Input(1.0, 1.0)

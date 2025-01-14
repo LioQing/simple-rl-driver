@@ -136,11 +136,6 @@ def main_scene(args: argparse.Namespace):
         if not args.follow_ai:
             player_car.reset_state(track)
 
-        # Reset the state of each AI car by calling `reset_state` with the
-        # track
-        for car in ai_cars:
-            car.reset_state(track)
-
     # Main loop forever while `running` is True
     running = True
     fixed_dt = 0.032
@@ -167,20 +162,6 @@ def main_scene(args: argparse.Namespace):
         # Update the player car if `args.follow_ai` is False
         if not args.follow_ai:
             player_car.update(fixed_dt, track)
-
-        # Update each AI car
-        #
-        # Skip the car if it is out of track
-        for car in ai_cars:
-            if car.out_of_track:
-                continue
-
-            car.update(fixed_dt, track)
-
-        # If AI follow mode is enabled, sort
-        # the AI cars by fitness in descending order
-        if args.follow_ai:
-            ai_cars.sort(key=lambda x: x.fitness, reverse=True)
 
         # Update the camera to follow the first AI car if `args.follow_ai` is
         # True, otherwise follow the player car
