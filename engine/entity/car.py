@@ -5,12 +5,11 @@ from typing import List
 import numpy as np
 import numpy.typing as npt
 import pygame
-import shapely
 
 from engine.entity.camera import Camera
 from engine.entity.track import Track
 from engine.entity.transformable import Transformable
-from engine.utils import clamp, rot_mat, vec
+from engine.utils import vec
 
 
 class Car(Transformable):
@@ -96,18 +95,6 @@ class Car(Transformable):
         """
         super().__init__(pos, rot)
 
-        self.color = color
-        self.out_of_track_color = out_of_track_color
-
-        self.speed = 0.0
-        self.acceleration = 0.0
-        self.angular_speed = 0.0
-        self.angular_acceleration = 0.0
-
-        self.out_of_track = False
-        self.progress = 0
-        self.total_progress = 0
-
     def _get_input(self) -> Input:
         """
         Get the input for the car.
@@ -123,22 +110,7 @@ class Car(Transformable):
         :param track: The track
         :return: None
         """
-        # Set the position to the first point of the track
-        #
-        # Set the rotation to the start direction of the track with
-        # `get_start_dir`
-        self.pos = track.curve.pts[0].pos.astype(np.float32)
-        self.rot = np.atan2(*track.get_start_dir()) - math.pi
-
-        # Reset everything else
-        self.speed = 0.0
-        self.acceleration = 0.0
-        self.angular_speed = 0.0
-        self.angular_acceleration = 0.0
-
-        self.out_of_track = False
-        self.progress = 0
-        self.total_progress = len(track.polyline)
+        pass
 
     def update(self, dt: float, track: Track):
         """
@@ -148,88 +120,7 @@ class Car(Transformable):
         :param track: The track
         :return: None
         """
-        # Get the input for the car from `_get_input`
-        #
-        # The `_get_input` method will be implemented in the subclasses
-        input_data = self._get_input()
-
-        # Linear acceleration
-        self.acceleration = input_data.forward * self.ACCELERATION * dt
-
-        if self.acceleration != 0:
-            # If there is acceleration, update the speed
-            self.speed += self.acceleration * dt
-            self.speed = clamp(self.speed, -self.MAX_SPEED, self.MAX_SPEED)
-        else:
-            # If there is no acceleration, apply deceleration
-            self.acceleration = (
-                self.speed / self.MAX_SPEED * self.DECELERATION * dt
-            )
-            dspeed = self.acceleration * dt
-            if abs(dspeed) > abs(self.speed):
-                self.speed = 0
-            else:
-                self.speed -= dspeed
-
-        # Angular movement
-        self.angular_acceleration = (
-            input_data.turn * self.ANGULAR_ACCELERATION * dt
-        )
-
-        if self.angular_acceleration != 0:
-            # If there is angular acceleration, update the angular speed
-            self.angular_speed += self.angular_acceleration * dt
-            self.angular_speed = clamp(
-                self.angular_speed,
-                -self.MAX_ANGULAR_SPEED,
-                self.MAX_ANGULAR_SPEED,
-            )
-        else:
-            # If there is no angular acceleration, apply angular deceleration
-            self.angular_acceleration = (
-                self.angular_speed
-                / self.MAX_ANGULAR_SPEED
-                * self.ANGULAR_DECELERATION
-                * dt
-            )
-            dangular_speed = self.angular_acceleration * dt
-            if abs(dangular_speed) > abs(self.angular_speed):
-                self.angular_speed = 0
-            else:
-                self.angular_speed -= dangular_speed
-
-        # Out of track handling by checking with `shapely_polygon` of the track
-        self.out_of_track = not track.shapely_polygon.contains(
-            shapely.points(self.pos)
-        )
-
-        if self.out_of_track:
-            # If the car is out of track, limit the speed the penalty speed
-            self.speed = clamp(
-                self.speed,
-                -self.MAX_SPEED * self.OUT_OF_TRACK_PENALTY,
-                self.MAX_SPEED * self.OUT_OF_TRACK_PENALTY,
-            )
-
-        # Update the position and rotation using Transformable methods
-        #
-        # `translate_forward` updates the position based on the speed
-        #
-        # `rotate` updates the rotation based on the angular speed
-        self.translate_forward(self.speed * dt)
-        self.rotate(self.angular_speed * dt)
-
-        # Update the progress
-        #
-        # If the car is close to the next point in the track by using a simple
-        # distance check, update the progress
-        if self.progress + 1 < len(track.polyline):
-            check_point = track.polyline[self.progress + 1]
-            if (
-                np.linalg.norm(check_point - self.pos)
-                < track.width + self.HEIGHT
-            ):
-                self.progress += 1
+        pass
 
     def get_corners(self) -> List[npt.NDArray[np.float32]]:
         """
@@ -237,23 +128,7 @@ class Car(Transformable):
 
         :return: The transformed corners of the car
         """
-
-        def rotate_angle(
-            x: float, y: float, rad: float
-        ) -> npt.NDArray[np.float32]:
-            # Rotate a local point around the center of the car
-            #
-            # Then return the global position of this rotated point
-            pos = vec(x, y)
-            return self.pos + np.dot(rot_mat(rad), pos)
-
-        # Rotate every corner of the car
-        return [
-            rotate_angle(-self.WIDTH / 2, -self.HEIGHT / 2, self.rot),
-            rotate_angle(self.WIDTH / 2, -self.HEIGHT / 2, self.rot),
-            rotate_angle(self.WIDTH / 2, self.HEIGHT / 2, self.rot),
-            rotate_angle(-self.WIDTH / 2, self.HEIGHT / 2, self.rot),
-        ]
+        return []
 
     def draw(self, screen: pygame.Surface, camera: Camera):
         """
@@ -263,10 +138,4 @@ class Car(Transformable):
         :param camera: The camera
         :return: None
         """
-        # Get the global position of the corners and then draw the polygon
-        polygon = [camera.get_coord(corners) for corners in self.get_corners()]
-        pygame.draw.polygon(screen, self.color, polygon)
-
-        if self.out_of_track:
-            # Draw the outline of the car with the out of track color
-            pygame.draw.polygon(screen, self.out_of_track_color, polygon, 2)
+        pass

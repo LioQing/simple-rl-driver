@@ -2,11 +2,8 @@ import argparse
 from pathlib import Path
 from typing import List, Tuple
 
-import numpy as np
 import pygame
 
-from engine.activations import activation_funcs
-from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
 from engine.entity.player_car import PlayerCar
 from engine.entity.track import Track
@@ -79,62 +76,8 @@ def main_scene(args: argparse.Namespace):
     # `args.track` is a string representing the name of the track to play in
     track = Track.load(args.track)
 
-    # Create a player car object
-    #
-    # `args.color` is a tuple[int, int, int] representing the color of the
-    # player car
-    player_car = PlayerCar(color=pygame.Color(*args.color))
-
-    # If `args.follow_ai` is False, reset the state of the player car by
-    # calling `reset_state` with the track
-    if not args.follow_ai:
-        player_car.reset_state(track)
-
-    # Create a list of AI cars
-    ai_cars = []
-
-    # If `args.nn` is provided, load the neural network arguments using
-    # `load_nn`
-    if args.nn:
-        sensor_rots, weights, activation, color = load_nn(args)
-
-        # Create a list of AI cars
-        #
-        # `args.ai_count` is the number of AI cars
-        #
-        # Get the activation function using `activation_funcs[activation]`
-        #
-        # Take the i-th element of `weights` if it is not None, otherwise None
-        #
-        # Supply `init_mutate_noise` with `args.init_mutate_noise`
-        ai_cars = [
-            AICar(
-                np.array(sensor_rots, dtype=np.float32),
-                weights=weights[i % len(weights)],
-                init_mutate_noise=args.init_mutate_noise,
-                activation=activation_funcs[activation],
-                color=pygame.Color(*color),
-            )
-            for i in range(args.ai_count)
-        ]
-
-        # Reset the state of each AI car by calling `reset_state` with the
-        # track
-        for car in ai_cars:
-            car.reset_state(track)
-
     # Create a camera object
-    #
-    # If `args.follow_ai` is True, follow the first AI car, otherwise follow
-    # the player car
-    camera = Camera(screen, player_car)
-
-    # Define the restart function
-    def restart():
-        # If `args.follow_ai` is False, reset the state of the player car by
-        # calling `reset_state` with the track
-        if not args.follow_ai:
-            player_car.reset_state(track)
+    camera = Camera(screen, PlayerCar())
 
     # Main loop forever while `running` is True
     running = True
@@ -148,24 +91,13 @@ def main_scene(args: argparse.Namespace):
             elif event.type == pygame.KEYDOWN:
                 if (
                     pygame.key.get_mods() & pygame.KMOD_CTRL
-                    and event.key == pygame.K_r
-                ):
-                    # If control + r is pressed, we restart the program
-                    restart()
-                if (
-                    pygame.key.get_mods() & pygame.KMOD_CTRL
                     and event.key == pygame.K_q
                 ):
                     # If control + q is pressed, we quit the program
                     running = False
 
-        # Update the player car if `args.follow_ai` is False
-        if not args.follow_ai:
-            player_car.update(fixed_dt, track)
-
-        # Update the camera to follow the first AI car if `args.follow_ai` is
-        # True, otherwise follow the player car
-        camera.update(fixed_dt, args.follow_ai and ai_cars[0])
+        # Update the camera
+        camera.update(fixed_dt)
 
         # Clear the screen with white color by using `fill` method on the
         # screen object
@@ -173,14 +105,6 @@ def main_scene(args: argparse.Namespace):
 
         # Draw the track and the cars on the screen
         track.draw(screen, camera, 5)
-
-        # Draw the player car if `args.follow_ai` is False
-        if not args.follow_ai:
-            player_car.draw(screen, camera)
-
-        # Draw each AI car on the screen
-        for car in ai_cars:
-            car.draw(screen, camera)
 
         # Update the display with `update`
         pygame.display.update()

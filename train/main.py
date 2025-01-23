@@ -4,12 +4,12 @@ import random
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-import numpy as np
 import pygame
 
 from engine.activations import activation_funcs
 from engine.entity.ai_car import AICar
 from engine.entity.camera import Camera
+from engine.entity.player_car import PlayerCar
 from engine.entity.track import Track
 
 DESCRIPTION = (
@@ -132,34 +132,6 @@ def main_scene(args: argparse.Namespace):
     # Create a camera object
     camera = Camera(screen)
 
-    # Load the neural network arguments using `load_nn`
-    sensor_rots, weights, hidden_layer_sizes, activation, color = load_nn(args)
-
-    # Create a list of AI cars
-    #
-    # `args.ai_count` is the number of AI cars
-    #
-    # Get the activation function using `activation_funcs[activation]`
-    #
-    # Take the i-th element of `weights` if it is not None, otherwise None
-    #
-    # Supply `init_mutate_noise` with `args.init_mutate_noise`
-    ai_cars = [
-        AICar(
-            sensor_rots=np.array(sensor_rots, dtype=np.float32),
-            activation=activation_funcs[activation],
-            weights=weights[i % len(weights)] if weights else None,
-            init_mutate_noise=args.init_mutate_noise,
-            hidden_layer_sizes=hidden_layer_sizes,
-            color=pygame.Color(*color),
-        )
-        for i in range(args.ai_count)
-    ]
-
-    # Reset the state of each car by calling `reset_state` with the track
-    for car in ai_cars:
-        car.reset_state(track)
-
     # Main loop forever while `running` is True
     running = True
     fixed_dt = 0.032
@@ -177,15 +149,9 @@ def main_scene(args: argparse.Namespace):
                 ):
                     # If control + q is pressed, we quit the program
                     running = False
-                if (
-                    pygame.key.get_mods() & pygame.KMOD_CTRL
-                    and event.key == pygame.K_s
-                ):
-                    # If control + s is pressed, we save the neural network
-                    save_nn(args, ai_cars)
 
-        # Update the camera to follow the first AI car, i.e. the most fit car
-        camera.update(fixed_dt, ai_cars[0])
+        # Update the camera
+        camera.update(fixed_dt, PlayerCar())
 
         # Skip frames
         #
@@ -202,8 +168,6 @@ def main_scene(args: argparse.Namespace):
 
         # Draw the track and the cars on the screen
         track.draw(screen, camera, 5)
-        for car in ai_cars:
-            car.draw(screen, camera)
 
         # Update the display with `update`
         pygame.display.update()
