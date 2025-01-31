@@ -2,12 +2,6 @@ import argparse
 from pathlib import Path
 from typing import List, Tuple
 
-import pygame
-
-from engine.entity.camera import Camera
-from engine.entity.player_car import PlayerCar
-from engine.entity.track import Track
-
 DESCRIPTION = (
     "Game play mode.\n"
     "\n"
@@ -51,69 +45,7 @@ def main_scene(args: argparse.Namespace):
     :param args: The arguments
     :return: None
     """
-    # Initialize pygame by calling `init`
-    pygame.init()
-
-    # Set the window title with `set_caption`
-    pygame.display.set_caption("Simple RL Driver - Game Play")
-
-    # Create a clock object to help control the frame rate
-    clock = pygame.time.Clock()
-
-    # Create a screen with `set_mode`
-    #
-    # `args.resolution` is a tuple[int, int] in the form of (width, height)
-    #
-    # `args.fullscreen` is a boolean indicating whether to run in fullscreen
-    # mode
-    screen = pygame.display.set_mode(
-        args.resolution,
-        (pygame.FULLSCREEN if args.fullscreen else 0) | pygame.RESIZABLE,
-    )
-
-    # Setup the track by loading it
-    #
-    # `args.track` is a string representing the name of the track to play in
-    track = Track.load(args.track)
-
-    # Create a camera object
-    camera = Camera(screen, PlayerCar())
-
-    # Main loop forever while `running` is True
-    running = True
-    fixed_dt = 0.032
-    while running:
-        # Handle events from `pygame.event.get()`
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                # If it is a quit event, we stop the loop
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if (
-                    pygame.key.get_mods() & pygame.KMOD_CTRL
-                    and event.key == pygame.K_q
-                ):
-                    # If control + q is pressed, we quit the program
-                    running = False
-
-        # Update the camera
-        camera.update(fixed_dt)
-
-        # Clear the screen with white color by using `fill` method on the
-        # screen object
-        screen.fill(pygame.Color(255, 255, 255))
-
-        # Draw the track and the cars on the screen
-        track.draw(screen, camera, 5)
-
-        # Update the display with `update`
-        pygame.display.update()
-
-        # Tick the clock to control the frame rate
-        clock.tick(60)
-
-    # Quit pygame with `quit`
-    pygame.quit()
+    pass
 
 
 def configure_parser(parser: argparse.ArgumentParser):

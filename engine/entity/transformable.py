@@ -1,9 +1,7 @@
-import math
-
 import numpy as np
 import numpy.typing as npt
 
-from engine.utils import dir, vec
+from engine.utils import vec
 
 
 class Transformable:
@@ -27,8 +25,7 @@ class Transformable:
         :param pos: The position of the object
         :param rot: The rotation of the object
         """
-        self.pos = pos
-        self.rot = rot
+        pass
 
     def translate(self, delta: npt.NDArray[np.float32]):
         """
@@ -37,7 +34,7 @@ class Transformable:
         :param delta: The translation vector
         :return: None
         """
-        self.pos += delta
+        pass
 
     def translate_forward(self, dist: float):
         """
@@ -46,7 +43,7 @@ class Transformable:
         :param dist: The distance to translate
         :return: None
         """
-        self.translate(dir(self.rot) * dist)
+        pass
 
     def rotate(self, rad: float):
         """
@@ -55,4 +52,4 @@ class Transformable:
         :param rad: The rotation in radians
         :return: None
         """
-        self.rot = (self.rot + rad) % (2 * math.pi)
+        pass
