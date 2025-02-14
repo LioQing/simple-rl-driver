@@ -7,6 +7,7 @@ A reinforcement learning project for training AI cars to drive on tracks.
 - [Overview](#overview)
     - [Libraries](#libraries)
     - [Features](#features)
+    - [Demos](#demos)
 - [Examples](#examples)
     - [Training](#training)
     - [Gameplay](#gameplay)
@@ -46,6 +47,20 @@ This project try to be as simple as possible, using only basic libraries and too
     - Visualize weights and biases of the neural network directly on the car.
 - Gameplay Mode: Play the game with the AI cars.
     - Follow the AI cars or control the player car.
+
+### Demos
+
+Demo of the 3 mode: Track Editor, Training, Gameplay.
+
+https://github.com/user-attachments/assets/a443b2d2-5a0b-451f-a9bd-c047f1e10f0a
+
+Demo of the neural network visualization, where the best neural network's weights and activation are displayed.
+
+https://github.com/user-attachments/assets/8780e4f7-d0d7-4230-b135-366d200e9c13
+
+Demo of the color gene, where the neural network weights of each car are displayed on the car body.
+
+https://github.com/user-attachments/assets/df16d565-80cd-4e73-9e5d-fe9e22b4479a
 
 ## Examples
 
