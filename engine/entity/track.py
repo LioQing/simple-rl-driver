@@ -70,12 +70,16 @@ class Track:
 
         :return: The starting direction
         """
-        return (
-            0.5**3 * self.curve.pts[0].pos
-            + 3 * 0.5**2 * 0.5 * self.curve.pts[0].control
-            + 3 * 0.5 * 0.5**2 * self.curve.pts[1].opp_control
-            + 0.5**3 * self.curve.pts[1].pos
-        )
+        diff = (
+            0.9**3 * self.curve.pts[0].pos
+            + 3 * 0.9**2 * 0.1 * self.curve.pts[0].control
+            + 3 * 0.9 * 0.1**2 * self.curve.pts[1].opp_control
+            + 0.1**3 * self.curve.pts[1].pos
+        ) - self.curve.pts[0].pos
+
+        diff *= vec(-1, 1)
+
+        return diff / np.linalg.norm(diff)
 
     @staticmethod
     def load(
