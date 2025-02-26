@@ -201,18 +201,18 @@ def main_scene(args: argparse.Namespace):
                     # If control + q is pressed, we quit the program
                     running = False
 
-        # Update the player car if `args.follow_ai` is False
-        if not args.follow_ai:
-            player_car.update(fixed_dt, track)
+        # # Update the player car if `args.follow_ai` is False
+        # if not args.follow_ai:
+        #     player_car.update(fixed_dt, track)
 
-        # Update each AI car
-        #
-        # Skip the car if it is out of track
-        for car in ai_cars:
-            if car.out_of_track:
-                continue
+        # # Update each AI car
+        # #
+        # # Skip the car if it is out of track
+        # for car in ai_cars:
+        #     if car.out_of_track:
+        #         continue
 
-            car.update(fixed_dt, track)
+        #     car.update(fixed_dt, track)
 
         # If neural network visualization is enabled, store the first AI car
         if args.nn_vis:
@@ -247,13 +247,13 @@ def main_scene(args: argparse.Namespace):
         # Draw the track and the cars on the screen
         track.draw(screen, camera, 5)
 
-        # Draw the player car if `args.follow_ai` is False
-        if not args.follow_ai:
-            player_car.draw(screen, camera)
+        # # Draw the player car if `args.follow_ai` is False
+        # if not args.follow_ai:
+        #     player_car.draw(screen, camera)
 
-        # Draw each AI car on the screen
-        for car in ai_cars:
-            car.draw(screen, camera)
+        # # Draw each AI car on the screen
+        # for car in ai_cars:
+        #     car.draw(screen, camera)
 
         # Draw the neural network visualization if enabled
         if args.nn_vis:

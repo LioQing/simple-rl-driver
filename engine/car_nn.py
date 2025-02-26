@@ -125,36 +125,7 @@ class CarNN:
         :param inputs: The input vector
         :return: The output vector
         """
-        # Check if the input size is correct
-        if len(inputs) != self.layer_sizes[0]:
-            raise ValueError(
-                f"Expected {self.layer_sizes[0]} inputs, got {len(inputs)}"
-            )
-
-        # Calculate the first hidden layer
-        self.hiddens[0] = self.activation(
-            np.dot(np.concatenate((inputs, [1.0])), self.weights[0])
-        )
-
-        # Calculate the remaining hidden layers in a loop
-        for i in range(1, len(self.hiddens)):
-            self.hiddens[i] = self.activation(
-                np.dot(
-                    np.concatenate((self.hiddens[i - 1], [1.0])),
-                    self.weights[i],
-                )
-            )
-
-        # Calculate the output layer, and also clip the values to [-1, 1]
-        # because it is what is required by the car
-        return np.clip(
-            np.dot(
-                np.concatenate((self.hiddens[-1], [1.0])),
-                self.weights[-1],
-            ),
-            -1.0,
-            1.0,
-        )
+        return np.array([0.0, 0.0])
 
     def mutate(
         self,
@@ -170,50 +141,4 @@ class CarNN:
         :param curr_fitness: The current fitness
         :return: None
         """
-        # If either there is no previous weights, or the current fitness is
-        # none, or the learning rate is zero, only noise will be added
-        if (
-            self.prev_weights is None
-            or curr_fitness is None
-            or learn_rate == 0
-        ):
-            # Add noise centering around 0 to the weights
-            for i in range(len(self.weights)):
-                self.weights[i] += np.random.normal(
-                    loc=0, scale=noise, size=self.weights[i].shape
-                )
-            return
-
-        # Gradient descent
-        #
-        # Find the change in fitness and weights
-        dfitness = curr_fitness - self.prev_fitness
-        dweights = [
-            weight - prev_weight
-            for weight, prev_weight in zip(self.weights, self.prev_weights)
-        ]
-
-        # Update the previous fitness and weights for the next iteration
-        #
-        # We don't need these values for the calculation later
-        self.prev_fitness = curr_fitness
-        self.prev_weights = self.weights
-
-        # Get the sign of the change in fitness, which indicates whether the
-        # previous change was good or bad
-        #
-        # The sign multiplied by the change in weights gives a general idea of
-        # how much the weights should be changed
-        #
-        # Then we also multiply the learning rate so taht the change does not
-        # overshoot
-        #
-        # Finally, we multiply by some noise to simulate spontaneous mutation
-        sign = np.sign(dfitness)
-        for i in range(len(self.weights)):
-            self.weights[i] += (
-                learn_rate
-                * sign
-                * dweights[i]
-                * np.random.normal(loc=1, scale=noise, size=dweights[i].shape)
-            )
+        pass

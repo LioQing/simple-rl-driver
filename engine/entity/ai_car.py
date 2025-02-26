@@ -237,17 +237,4 @@ class AICar(Car):
             )
 
     def _get_input(self) -> Car.Input:
-        # Prepare inputs to the neural network
-        #
-        # Normalize the speed and angular speed by their maximum values so
-        # they are within [-1, 1]
-        self.inputs[0] = self.speed / self.MAX_SPEED
-        self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
-
-        self.outputs = self.nn.activate(self.inputs)
-
-        # Assign outputs of neural network to inputs of the car
-        self.forward = self.outputs[0]
-        self.turn = self.outputs[1]
-
-        return Car.Input(self.forward, self.turn)
+        return Car.Input(0.0, 0.0)
