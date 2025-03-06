@@ -128,6 +128,6 @@ class Track:
         pygame.draw.polygon(
             screen,
             pygame.Color(0, 0, 0),
-            [camera.get_coord(p) for p in self.polygon],
+            [pygame.math.Vector2(*camera.get_coord(p)) for p in self.polygon],
             width,
         )

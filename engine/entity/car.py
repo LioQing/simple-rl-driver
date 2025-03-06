@@ -264,7 +264,7 @@ class Car(Transformable):
         :return: None
         """
         # Get the global position of the corners and then draw the polygon
-        polygon = [camera.get_coord(corners) for corners in self.get_corners()]
+        polygon = [pygame.math.Vector2(*camera.get_coord(corners)) for corners in self.get_corners()]
         pygame.draw.polygon(screen, self.color, polygon)
 
         if self.out_of_track:

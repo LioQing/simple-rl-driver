@@ -10,4 +10,19 @@ class PlayerCar(Car):
     """
 
     def _get_input(self) -> Car.Input:
-        return Car.Input(0.0, 0.0)
+        forward = 0
+        if pygame.key.get_pressed()[pygame.K_w]:
+            forward = 1
+        if pygame.key.get_pressed()[pygame.K_s]:
+            forward = -1
+
+        turn = 0
+        if pygame.key.get_pressed()[pygame.K_a]:
+            turn = -1
+        if pygame.key.get_pressed()[pygame.K_d]:
+            turn = 1
+
+        forward = clamp(forward, -1.0, 1.0)
+        turn = clamp(turn, -1.0, 1.0)
+
+        return Car.Input(forward, turn)
