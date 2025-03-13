@@ -232,9 +232,17 @@ class AICar(Car):
             pygame.draw.line(
                 screen,
                 self.sensor_color,
-                camera.get_coord(self.pos),
-                camera.get_coord(sensor_end),
+                pygame.math.Vector2(*camera.get_coord(self.pos)),
+                pygame.math.Vector2(*camera.get_coord(sensor_end)),
             )
 
     def _get_input(self) -> Car.Input:
-        return Car.Input(0.0, 0.0)
+        self.inputs[0] = self.speed / self.MAX_SPEED
+        self.inputs[1] = self.angular_speed / self.MAX_ANGULAR_SPEED
+
+        self.outputs = self.nn.activate(self.inputs)
+
+        self.forward = self.outputs[0]
+        self.turn = self.outputs[1]
+
+        return Car.Input(self.forward, self.turn)

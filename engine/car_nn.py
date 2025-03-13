@@ -125,7 +125,27 @@ class CarNN:
         :param inputs: The input vector
         :return: The output vector
         """
-        return np.array([0.0, 0.0])
+        # Y = W * (X + [1.0])
+        self.hiddens[0] = self.activation(
+            np.dot(np.concatenate((inputs, [1.0])), self.weights[0])
+        )
+
+        for i in range(1, len(self.hiddens)):
+            self.hiddens[i] = self.activation(
+                np.dot(
+                    np.concatenate((self.hiddens[i - 1], [1.0])),
+                    self.weights[i],
+                )
+            )
+
+        return np.clip(
+            np.dot(
+                np.concatenate((self.hiddens[-1], [1.0])),
+                self.weights[-1],
+            ),
+            -1.0,
+            1.0,
+        )
 
     def mutate(
         self,
